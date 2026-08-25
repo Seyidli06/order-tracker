@@ -1,0 +1,44 @@
+{
+  "event_id": "ship_evt_11111",
+  "event_type": "shipment.shipped",
+  "source": "fedex",
+  "timestamp": "2026-08-25T09:00:00Z",
+  "shipment_data": {
+    "shipment_id": "shp_11111",
+    "order_id": "order_12345",
+    "tracking_number": "1234567890123456",
+    "carrier": "fedex",
+    "status": "SHIPPED",
+    "origin_address": {
+      "street": "123 Warehouse St",
+      "city": "New York",
+      "state": "NY",
+      "postalCode": "10001",
+      "country": "US"
+    },
+    "destination_address": {
+      "street": "456 Customer Ave",
+      "city": "Los Angeles",
+      "state": "CA",
+      "postalCode": "90001",
+      "country": "US"
+    },
+    "estimated_delivery": "2026-08-30T09:00:00Z",
+    "packages": [
+      {
+        "package_id": "pkg_11111",
+        "weight": 2.5,
+        "weightUnit": "kg",
+        "dimensions": {
+          "length": 30.0,
+          "width": 20.0,
+          "height": 15.0,
+          "unit": "cm"
+        }
+      }
+    ]
+  },
+  "metadata": {
+    "warehouse_id": "wh_nyc_01"
+  }
+}
