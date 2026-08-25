@@ -1,8 +1,11 @@
 package com.ordertracker.webhook.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ordertracker.webhook.dto.PaymentWebhookPayload;
 import com.ordertracker.webhook.dto.ShipmentWebhookPayload;
+import com.ordertracker.webhook.service.WebhookService;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -16,7 +19,11 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/webhooks")
 @Slf4j
+@RequiredArgsConstructor
 public class WebhookController {
+
+    private final WebhookService webhookService;
+    private final ObjectMapper objectMapper;
 
     @PostMapping("/payment")
     public ResponseEntity<Void> handlePaymentWebhook(
@@ -30,8 +37,12 @@ public class WebhookController {
                 payload.getPaymentData().getAmount(),
                 payload.getPaymentData().getStatus());
 
-        log.debug("Payment webhook headers: {}", headers);
-        log.debug("Payment webhook payload: {}", payload);
+        try {
+            String headersJson = objectMapper.writeValueAsString(headers);
+            webhookService.processPaymentWebhook(payload, headersJson);
+        } catch (Exception e) {
+            log.error("Failed to serialize headers for payment webhook: eventId={}", payload.getEventId(), e);
+        }
 
         return ResponseEntity.ok().build();
     }
@@ -49,8 +60,12 @@ public class WebhookController {
                 payload.getShipmentData().getCarrier(),
                 payload.getShipmentData().getStatus());
 
-        log.debug("Shipment webhook headers: {}", headers);
-        log.debug("Shipment webhook payload: {}", payload);
+        try {
+            String headersJson = objectMapper.writeValueAsString(headers);
+            webhookService.processShipmentWebhook(payload, headersJson);
+        } catch (Exception e) {
+            log.error("Failed to serialize headers for shipment webhook: eventId={}", payload.getEventId(), e);
+        }
 
         return ResponseEntity.ok().build();
     }
