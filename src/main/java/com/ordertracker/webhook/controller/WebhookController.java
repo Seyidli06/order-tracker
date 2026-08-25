@@ -4,6 +4,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ordertracker.webhook.dto.PaymentWebhookPayload;
 import com.ordertracker.webhook.dto.ShipmentWebhookPayload;
 import com.ordertracker.webhook.service.WebhookService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,12 +24,18 @@ import java.util.Map;
 @RequestMapping("/api/webhooks")
 @Slf4j
 @RequiredArgsConstructor
+@Tag(name = "Webhook Endpoints", description = "Third-party webhook receivers for payment and shipment events")
 public class WebhookController {
 
     private final WebhookService webhookService;
     private final ObjectMapper objectMapper;
 
     @PostMapping("/payment")
+    @Operation(summary = "Handle payment webhook", description = "Receives and processes payment status updates from third-party payment providers")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Webhook accepted for processing"),
+            @ApiResponse(responseCode = "400", description = "Invalid payload format")
+    })
     public ResponseEntity<Void> handlePaymentWebhook(
             @Valid @RequestBody PaymentWebhookPayload payload,
             @RequestHeader Map<String, String> headers) {
@@ -48,6 +58,11 @@ public class WebhookController {
     }
 
     @PostMapping("/shipment")
+    @Operation(summary = "Handle shipment webhook", description = "Receives and processes shipment status updates from third-party logistics providers")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Webhook accepted for processing"),
+            @ApiResponse(responseCode = "400", description = "Invalid payload format")
+    })
     public ResponseEntity<Void> handleShipmentWebhook(
             @Valid @RequestBody ShipmentWebhookPayload payload,
             @RequestHeader Map<String, String> headers) {
