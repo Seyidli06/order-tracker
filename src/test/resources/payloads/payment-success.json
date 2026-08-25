@@ -1,0 +1,18 @@
+{
+  "event_id": "pay_evt_12345",
+  "event_type": "payment.completed",
+  "source": "stripe",
+  "timestamp": "2026-08-25T08:00:00Z",
+  "payment_data": {
+    "payment_id": "pi_3MtwBwLkdIwHu7ix28a3tqPa",
+    "order_id": "order_12345",
+    "amount": 99.99,
+    "currency": "USD",
+    "status": "PAYMENT_SUCCEEDED",
+    "transaction_id": "txn_3MtwBwLkdIwHu7ix1X5d5X5h",
+    "payment_method": "visa"
+  },
+  "metadata": {
+    "customer_email": "customer@example.com"
+  }
+}
