@@ -14,11 +14,10 @@ CREATE TABLE order_status_history
             ON DELETE CASCADE
 );
 
-CREATE INDEX idx_order_status_history_order_id
-    ON order_status_history (order_id);
+CREATE INDEX idx_order_status_history_order_changed_at
+    ON order_status_history (order_id, changed_at DESC);
 
-CREATE INDEX idx_order_status_history_changed_at
-    ON order_status_history (changed_at);
+
 
 CREATE INDEX idx_order_status_history_source
     ON order_status_history (source);
