@@ -22,12 +22,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 
+@WebMvcTest(
+        controllers = TestSecurityController.class
+)
 @Import({
         SecurityConfig.class,
         JwtAuthenticationFilter.class,
         SecurityErrorResponseWriter.class,
         RestAuthenticationEntryPoint.class,
-        RestAccessDeniedHandler.class,
+        RestAccessDeniedHandler.class
 })
 class SecurityIntegrationTest {
 
