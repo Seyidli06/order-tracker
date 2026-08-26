@@ -1,6 +1,5 @@
 package com.ordertracker.security.config;
 
-
 import com.ordertracker.security.handler.RestAccessDeniedHandler;
 import com.ordertracker.security.handler.RestAuthenticationEntryPoint;
 import com.ordertracker.security.jwt.JwtAuthenticationFilter;
