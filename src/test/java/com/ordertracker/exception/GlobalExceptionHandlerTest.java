@@ -1,7 +1,6 @@
 package com.ordertracker.exception;
 
 import jakarta.persistence.EntityNotFoundException;
-import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -10,37 +9,35 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.when;
-import org.springframework.security.authentication.BadCredentialsException;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @ExtendWith(MockitoExtension.class)
 class GlobalExceptionHandlerTest {
 
     @Mock
-    private HttpServletRequest request;
-
-    @Mock
     private MethodParameter methodParameter;
 
     private GlobalExceptionHandler handler;
+    private MockHttpServletRequest request;
 
     @BeforeEach
     void setUp() {
         handler = new GlobalExceptionHandler();
 
-        when(request.getRequestURI())
-                .thenReturn("/api/orders/10");
-
-        when(request.getMethod())
-                .thenReturn("GET");
+        request = new MockHttpServletRequest();
+        request.setMethod("GET");
+        request.setRequestURI("/api/orders/10");
     }
 
     @Test
@@ -239,48 +236,8 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
-    void shouldReturnInternalServerErrorForUnexpectedException() {
-        RuntimeException exception =
-                new RuntimeException(
-                        "Database exploded"
-                );
-
-        ResponseEntity<ApiError> response =
-                handler.handleUnexpectedException(
-                        exception,
-                        request
-                );
-
-        assertEquals(
-                HttpStatus.INTERNAL_SERVER_ERROR,
-                response.getStatusCode()
-        );
-
-        ApiError body = response.getBody();
-
-        assertNotNull(body);
-        assertEquals(500, body.status());
-        assertEquals(
-                "Internal Server Error",
-                body.error()
-        );
-
-        assertEquals(
-                "An unexpected error occurred",
-                body.message()
-        );
-
-        // Internal exception message API consumer-ə çıxmamalıdır.
-        assertNotEquals(
-                "Database exploded",
-                body.message()
-        );
-    }
-
-    @Test
     void shouldReturnUnauthorizedForAuthenticationException() {
-        when(request.getRequestURI())
-                .thenReturn("/api/auth/login");
+        request.setRequestURI("/api/auth/login");
 
         BadCredentialsException exception =
                 new BadCredentialsException(
@@ -317,6 +274,43 @@ class GlobalExceptionHandlerTest {
 
         assertNotEquals(
                 exception.getMessage(),
+                body.message()
+        );
+    }
+
+    @Test
+    void shouldReturnInternalServerErrorForUnexpectedException() {
+        RuntimeException exception =
+                new RuntimeException(
+                        "Database exploded"
+                );
+
+        ResponseEntity<ApiError> response =
+                handler.handleUnexpectedException(
+                        exception,
+                        request
+                );
+
+        assertEquals(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                response.getStatusCode()
+        );
+
+        ApiError body = response.getBody();
+
+        assertNotNull(body);
+        assertEquals(500, body.status());
+        assertEquals(
+                "Internal Server Error",
+                body.error()
+        );
+        assertEquals(
+                "An unexpected error occurred",
+                body.message()
+        );
+
+        assertNotEquals(
+                "Database exploded",
                 body.message()
         );
     }

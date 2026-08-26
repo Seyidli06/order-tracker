@@ -23,15 +23,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(
-        controllers =
-                SecurityIntegrationTest.TestController.class
+        controllers = TestSecurityController.class
 )
 @Import({
         SecurityConfig.class,
         JwtAuthenticationFilter.class,
         SecurityErrorResponseWriter.class,
         RestAuthenticationEntryPoint.class,
-        RestAccessDeniedHandler.class
+        RestAccessDeniedHandler.class,
+        TestSecurityController.class
 })
 class SecurityIntegrationTest {
 
@@ -208,22 +208,37 @@ class SecurityIntegrationTest {
                 );
     }
 
-    @RestController
-    static class TestController {
+    @Test
+    void shouldReturnNotFoundJsonForUnknownEndpoint()
+            throws Exception {
 
-        @GetMapping("/api/webhooks/test")
-        String webhook() {
-            return "webhook";
-        }
-
-        @GetMapping("/api/test/protected")
-        String protectedEndpoint() {
-            return "protected";
-        }
-
-        @GetMapping("/api/audit/test")
-        String audit() {
-            return "audit";
-        }
+        mockMvc.perform(
+                        get("/api/does-not-exist")
+                                .with(
+                                        user("user@test.com")
+                                                .roles("USER")
+                                )
+                )
+                .andExpect(
+                        status().isNotFound()
+                )
+                .andExpect(
+                        jsonPath("$.status")
+                                .value(404)
+                )
+                .andExpect(
+                        jsonPath("$.error")
+                                .value("Not Found")
+                )
+                .andExpect(
+                        jsonPath("$.message")
+                                .value("Resource not found")
+                )
+                .andExpect(
+                        jsonPath("$.path")
+                                .value("/api/does-not-exist")
+                );
     }
+
+
 }
