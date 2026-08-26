@@ -4,6 +4,7 @@ import com.ordertracker.auth.dto.AuthResponse;
 import com.ordertracker.auth.dto.LoginRequest;
 import com.ordertracker.auth.dto.RegisterRequest;
 import com.ordertracker.common.enums.Role;
+import com.ordertracker.exception.ResourceConflictException;
 import com.ordertracker.security.jwt.JwtService;
 import com.ordertracker.user.entity.User;
 import com.ordertracker.user.repository.UserRepository;
@@ -30,7 +31,7 @@ public class AuthService {
     public AuthResponse register(RegisterRequest request) {
 
         if (userRepository.existsByEmail(request.email())) {
-            throw new IllegalArgumentException(
+            throw new ResourceConflictException(
                     "User with this email already exists"
             );
         }

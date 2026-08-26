@@ -25,6 +25,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import com.ordertracker.exception.ResourceConflictException;
 
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
@@ -110,9 +111,9 @@ class AuthServiceTest {
         when(userRepository.existsByEmail("user@test.com"))
                 .thenReturn(true);
 
-        IllegalArgumentException exception =
+        ResourceConflictException exception =
                 assertThrows(
-                        IllegalArgumentException.class,
+                        ResourceConflictException.class,
                         () -> authService.register(request)
                 );
 
