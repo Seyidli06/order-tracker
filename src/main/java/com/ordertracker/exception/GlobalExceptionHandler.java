@@ -1,5 +1,6 @@
 package com.ordertracker.exception;
 
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
@@ -7,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -14,7 +16,6 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import org.springframework.security.core.AuthenticationException;
 
 @RestControllerAdvice
 @Slf4j
@@ -33,6 +34,19 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ApiError> handleNoResourceFound(
+            NoResourceFoundException exception,
+            HttpServletRequest request
+    ) {
+        return buildResponse(
+                HttpStatus.NOT_FOUND,
+                "Resource not found",
+                request,
+                Map.of()
+        );
+    }
+
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiError> handleAccessDenied(
             AccessDeniedException exception,
@@ -40,6 +54,19 @@ public class GlobalExceptionHandler {
     ) {
         return buildResponse(
                 HttpStatus.FORBIDDEN,
+                exception.getMessage(),
+                request,
+                Map.of()
+        );
+    }
+
+    @ExceptionHandler(ResourceConflictException.class)
+    public ResponseEntity<ApiError> handleResourceConflict(
+            ResourceConflictException exception,
+            HttpServletRequest request
+    ) {
+        return buildResponse(
+                HttpStatus.CONFLICT,
                 exception.getMessage(),
                 request,
                 Map.of()
@@ -108,6 +135,19 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ApiError> handleAuthentication(
+            AuthenticationException exception,
+            HttpServletRequest request
+    ) {
+        return buildResponse(
+                HttpStatus.UNAUTHORIZED,
+                "Invalid email or password",
+                request,
+                Map.of()
+        );
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleUnexpectedException(
             Exception exception,
@@ -146,31 +186,5 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(status)
                 .body(apiError);
-    }
-
-    @ExceptionHandler(ResourceConflictException.class)
-    public ResponseEntity<ApiError> handleResourceConflict(
-            ResourceConflictException exception,
-            HttpServletRequest request
-    ) {
-        return buildResponse(
-                HttpStatus.CONFLICT,
-                exception.getMessage(),
-                request,
-                Map.of()
-        );
-    }
-
-    @ExceptionHandler(AuthenticationException.class)
-    public ResponseEntity<ApiError> handleAuthentication(
-            AuthenticationException exception,
-            HttpServletRequest request
-    ) {
-        return buildResponse(
-                HttpStatus.UNAUTHORIZED,
-                "Invalid email or password",
-                request,
-                Map.of()
-        );
     }
 }
