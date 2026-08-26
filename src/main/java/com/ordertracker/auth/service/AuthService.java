@@ -1,6 +1,5 @@
 package com.ordertracker.auth.service;
 
-
 import com.ordertracker.auth.dto.AuthResponse;
 import com.ordertracker.auth.dto.LoginRequest;
 import com.ordertracker.auth.dto.RegisterRequest;
