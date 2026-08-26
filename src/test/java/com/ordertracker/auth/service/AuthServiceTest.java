@@ -26,6 +26,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import com.ordertracker.exception.ResourceConflictException;
+import com.ordertracker.exception.ResourceConflictException;
 
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {

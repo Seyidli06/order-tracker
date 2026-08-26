@@ -1,12 +1,11 @@
 package com.ordertracker.auth.service;
 
 
-import com.ordertracker.exception.ResourceConflictException;
-import com.ordertracker.exception.ResourceConflictException;
 import com.ordertracker.auth.dto.AuthResponse;
 import com.ordertracker.auth.dto.LoginRequest;
 import com.ordertracker.auth.dto.RegisterRequest;
 import com.ordertracker.common.enums.Role;
+import com.ordertracker.exception.ResourceConflictException;
 import com.ordertracker.security.jwt.JwtService;
 import com.ordertracker.user.entity.User;
 import com.ordertracker.user.repository.UserRepository;
