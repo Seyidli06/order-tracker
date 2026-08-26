@@ -1,5 +1,7 @@
 package com.ordertracker.security.config;
 
+import com.ordertracker.security.handler.RestAccessDeniedHandler;
+import com.ordertracker.security.handler.RestAuthenticationEntryPoint;
 import com.ordertracker.security.jwt.JwtAuthenticationFilter;
 import com.ordertracker.security.service.CustomUserDetailsService;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +27,8 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final CustomUserDetailsService customUserDetailsService;
+    private final RestAuthenticationEntryPoint authenticationEntryPoint;
+    private final RestAccessDeniedHandler accessDeniedHandler;
 
     @Bean
     public SecurityFilterChain securityFilterChain(
@@ -37,6 +41,15 @@ public class SecurityConfig {
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(
                                 SessionCreationPolicy.STATELESS
+                        )
+                )
+
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint(
+                                authenticationEntryPoint
+                        )
+                        .accessDeniedHandler(
+                                accessDeniedHandler
                         )
                 )
 
