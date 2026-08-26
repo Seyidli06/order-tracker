@@ -19,6 +19,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
+import org.springframework.security.authentication.BadCredentialsException;
 
 @ExtendWith(MockitoExtension.class)
 class GlobalExceptionHandlerTest {
@@ -272,6 +273,50 @@ class GlobalExceptionHandlerTest {
         // Internal exception message API consumer-ə çıxmamalıdır.
         assertNotEquals(
                 "Database exploded",
+                body.message()
+        );
+    }
+
+    @Test
+    void shouldReturnUnauthorizedForAuthenticationException() {
+        when(request.getRequestURI())
+                .thenReturn("/api/auth/login");
+
+        BadCredentialsException exception =
+                new BadCredentialsException(
+                        "Bad credentials"
+                );
+
+        ResponseEntity<ApiError> response =
+                handler.handleAuthentication(
+                        exception,
+                        request
+                );
+
+        assertEquals(
+                HttpStatus.UNAUTHORIZED,
+                response.getStatusCode()
+        );
+
+        ApiError body = response.getBody();
+
+        assertNotNull(body);
+        assertEquals(401, body.status());
+        assertEquals(
+                "Unauthorized",
+                body.error()
+        );
+        assertEquals(
+                "Invalid email or password",
+                body.message()
+        );
+        assertEquals(
+                "/api/auth/login",
+                body.path()
+        );
+
+        assertNotEquals(
+                exception.getMessage(),
                 body.message()
         );
     }
