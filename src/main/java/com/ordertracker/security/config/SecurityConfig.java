@@ -17,6 +17,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import com.ordertracker.security.handler.RestAccessDeniedHandler;
+import com.ordertracker.security.handler.RestAuthenticationEntryPoint;
 
 @Configuration
 @EnableMethodSecurity
@@ -25,6 +27,8 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final CustomUserDetailsService customUserDetailsService;
+    private final RestAuthenticationEntryPoint authenticationEntryPoint;
+    private final RestAccessDeniedHandler accessDeniedHandler;
 
     @Bean
     public SecurityFilterChain securityFilterChain(
@@ -37,6 +41,15 @@ public class SecurityConfig {
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(
                                 SessionCreationPolicy.STATELESS
+                        )
+                )
+
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint(
+                                authenticationEntryPoint
+                        )
+                        .accessDeniedHandler(
+                                accessDeniedHandler
                         )
                 )
 
