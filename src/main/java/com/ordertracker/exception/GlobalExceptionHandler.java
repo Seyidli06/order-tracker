@@ -146,4 +146,17 @@ public class GlobalExceptionHandler {
                 .status(status)
                 .body(apiError);
     }
+
+    @ExceptionHandler(ResourceConflictException.class)
+    public ResponseEntity<ApiError> handleResourceConflict(
+            ResourceConflictException exception,
+            HttpServletRequest request
+    ) {
+        return buildResponse(
+                HttpStatus.CONFLICT,
+                exception.getMessage(),
+                request,
+                Map.of()
+        );
+    }
 }
