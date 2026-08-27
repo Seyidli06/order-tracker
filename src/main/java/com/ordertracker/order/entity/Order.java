@@ -29,6 +29,12 @@ public class Order {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Version
+    @Column(
+            nullable = false
+    )
+    private Long version;
+
     @Column(
             name = "external_order_id",
             nullable = false,
