@@ -46,6 +46,7 @@ import static org.mockito.Mockito.verify;
 class OrderWebhookFlowIntegrationTest {
 
     @Container
+    @SuppressWarnings("resource")
     static PostgreSQLContainer<?> postgresContainer = new PostgreSQLContainer<>("postgres:16-alpine")
             .withDatabaseName("testdb")
             .withUsername("testuser")
