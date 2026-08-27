@@ -6,6 +6,7 @@ import com.ordertracker.audit.WebhookAuditLog;
 import com.ordertracker.audit.WebhookAuditLogRepository;
 import com.ordertracker.webhook.dto.PaymentWebhookPayload;
 import com.ordertracker.webhook.dto.ShipmentWebhookPayload;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -78,6 +79,11 @@ class OrderWebhookFlowIntegrationTest {
     @BeforeAll
     static void beforeAll() {
         postgresContainer.start();
+    }
+
+    @AfterAll
+    static void afterAll() {
+        postgresContainer.stop();
     }
 
     @BeforeEach
