@@ -2,12 +2,13 @@ package com.adil.ordertracker.webhook.controller;
 
 import com.adil.ordertracker.support.TestDataFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ordertracker.webhook.controller.WebhookController;
 import com.ordertracker.webhook.dto.ShipmentWebhookPayload;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -17,7 +18,7 @@ import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(WebhookController.class)
+@WebMvcTest(controllers = WebhookController.class)
 class ShipmentWebhookControllerTest {
 
     @Autowired
@@ -26,7 +27,7 @@ class ShipmentWebhookControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockBean
+    @MockitoBean
     private com.ordertracker.webhook.service.WebhookService webhookService;
 
     @Test
