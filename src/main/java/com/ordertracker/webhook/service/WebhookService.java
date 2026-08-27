@@ -2,7 +2,6 @@ package com.ordertracker.webhook.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ordertracker.audit.AuditService;
-import com.ordertracker.audit.WebhookAuditLog;
 import com.ordertracker.webhook.dto.PaymentWebhookPayload;
 import com.ordertracker.webhook.dto.ShipmentWebhookPayload;
 import lombok.RequiredArgsConstructor;
