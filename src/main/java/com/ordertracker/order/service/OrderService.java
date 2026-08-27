@@ -29,9 +29,16 @@ import java.util.UUID;
 public class OrderService {
 
     private final OrderRepository orderRepository;
-    private final OrderStatusHistoryRepository orderStatusHistoryRepository;
+
+    private final OrderStatusHistoryRepository
+            orderStatusHistoryRepository;
+
     private final UserRepository userRepository;
+
     private final OrderMapper orderMapper;
+
+    private final OrderStatusTransitionValidator
+            orderStatusTransitionValidator;
 
     public OrderResponse createOrder(
             String email,
@@ -40,17 +47,26 @@ public class OrderService {
         User user = getUserByEmail(email);
 
         Order order = Order.builder()
-                .externalOrderId(generateExternalOrderId())
+                .externalOrderId(
+                        generateExternalOrderId()
+                )
                 .user(user)
-                .totalAmount(request.totalAmount())
+                .totalAmount(
+                        request.totalAmount()
+                )
                 .currency(
                         request.currency()
-                                .toUpperCase(Locale.ROOT)
+                                .toUpperCase(
+                                        Locale.ROOT
+                                )
                 )
-                .status(OrderStatus.CREATED)
+                .status(
+                        OrderStatus.CREATED
+                )
                 .build();
 
-        Order savedOrder = orderRepository.save(order);
+        Order savedOrder =
+                orderRepository.save(order);
 
         saveHistory(
                 savedOrder,
@@ -60,17 +76,26 @@ public class OrderService {
                 null
         );
 
-        return orderMapper.toResponse(savedOrder);
+        return orderMapper.toResponse(
+                savedOrder
+        );
     }
 
     @Transactional(readOnly = true)
-    public List<OrderResponse> getMyOrders(String email) {
-        User user = getUserByEmail(email);
+    public List<OrderResponse> getMyOrders(
+            String email
+    ) {
+        User user =
+                getUserByEmail(email);
 
         return orderRepository
-                .findAllByUserIdOrderByCreatedAtDesc(user.getId())
+                .findAllByUserIdOrderByCreatedAtDesc(
+                        user.getId()
+                )
                 .stream()
-                .map(orderMapper::toResponse)
+                .map(
+                        orderMapper::toResponse
+                )
                 .toList();
     }
 
@@ -79,16 +104,20 @@ public class OrderService {
             Long orderId,
             String email
     ) {
-        User currentUser = getUserByEmail(email);
+        User currentUser =
+                getUserByEmail(email);
 
-        Order order = getOrderById(orderId);
+        Order order =
+                getOrderById(orderId);
 
         validateOrderAccess(
                 order,
                 currentUser
         );
 
-        return orderMapper.toResponse(order);
+        return orderMapper.toResponse(
+                order
+        );
     }
 
     @Transactional(readOnly = true)
@@ -96,9 +125,11 @@ public class OrderService {
             Long orderId,
             String email
     ) {
-        User currentUser = getUserByEmail(email);
+        User currentUser =
+                getUserByEmail(email);
 
-        Order order = getOrderById(orderId);
+        Order order =
+                getOrderById(orderId);
 
         validateOrderAccess(
                 order,
@@ -106,9 +137,13 @@ public class OrderService {
         );
 
         return orderStatusHistoryRepository
-                .findAllByOrderIdOrderByChangedAtDesc(order.getId())
+                .findAllByOrderIdOrderByChangedAtDesc(
+                        order.getId()
+                )
                 .stream()
-                .map(orderMapper::toHistoryResponse)
+                .map(
+                        orderMapper::toHistoryResponse
+                )
                 .toList();
     }
 
@@ -130,24 +165,60 @@ public class OrderService {
             );
         }
 
-        Order order = orderRepository
-                .findByExternalOrderId(externalOrderId)
-                .orElseThrow(() ->
-                        new EntityNotFoundException(
-                                "Order not found: " + externalOrderId
+        Order order =
+                orderRepository
+                        .findByExternalOrderId(
+                                externalOrderId
                         )
-                );
+                        .orElseThrow(
+                                () ->
+                                        new EntityNotFoundException(
+                                                "Order not found: "
+                                                        + externalOrderId
+                                        )
+                        );
 
-        OrderStatus previousStatus = order.getStatus();
+        OrderStatus previousStatus =
+                order.getStatus();
 
+        /*
+         * Idempotency:
+         *
+         * Eyni webhook/event statusu təkrar göndərilərsə
+         * order yenidən save edilmir və lazımsız history
+         * yaradılmır.
+         */
         if (previousStatus == newStatus) {
-            return orderMapper.toResponse(order);
+            return orderMapper.toResponse(
+                    order
+            );
         }
 
-        order.setStatus(newStatus);
+        /*
+         * State transition validation:
+         *
+         * Məsələn:
+         *
+         * PAYMENT_PENDING -> PAID       allowed
+         * PAID -> SHIPPED               allowed
+         * SHIPPED -> DELIVERED          allowed
+         *
+         * DELIVERED -> PAYMENT_PENDING  rejected
+         */
+        orderStatusTransitionValidator
+                .validate(
+                        previousStatus,
+                        newStatus
+                );
+
+        order.setStatus(
+                newStatus
+        );
 
         Order savedOrder =
-                orderRepository.save(order);
+                orderRepository.save(
+                        order
+                );
 
         saveHistory(
                 savedOrder,
@@ -157,7 +228,9 @@ public class OrderService {
                 referenceId
         );
 
-        return orderMapper.toResponse(savedOrder);
+        return orderMapper.toResponse(
+                savedOrder
+        );
     }
 
     private void saveHistory(
@@ -169,31 +242,58 @@ public class OrderService {
     ) {
         OrderStatusHistory history =
                 OrderStatusHistory.builder()
-                        .order(order)
-                        .previousStatus(previousStatus)
-                        .newStatus(newStatus)
-                        .source(source)
-                        .referenceId(referenceId)
+                        .order(
+                                order
+                        )
+                        .previousStatus(
+                                previousStatus
+                        )
+                        .newStatus(
+                                newStatus
+                        )
+                        .source(
+                                source
+                        )
+                        .referenceId(
+                                referenceId
+                        )
                         .build();
 
-        orderStatusHistoryRepository.save(history);
-    }
-
-    private User getUserByEmail(String email) {
-        return userRepository.findByEmail(email)
-                .orElseThrow(() ->
-                        new EntityNotFoundException(
-                                "User not found: " + email
-                        )
+        orderStatusHistoryRepository
+                .save(
+                        history
                 );
     }
 
-    private Order getOrderById(Long orderId) {
-        return orderRepository.findById(orderId)
-                .orElseThrow(() ->
-                        new EntityNotFoundException(
-                                "Order not found: " + orderId
-                        )
+    private User getUserByEmail(
+            String email
+    ) {
+        return userRepository
+                .findByEmail(
+                        email
+                )
+                .orElseThrow(
+                        () ->
+                                new EntityNotFoundException(
+                                        "User not found: "
+                                                + email
+                                )
+                );
+    }
+
+    private Order getOrderById(
+            Long orderId
+    ) {
+        return orderRepository
+                .findById(
+                        orderId
+                )
+                .orElseThrow(
+                        () ->
+                                new EntityNotFoundException(
+                                        "Order not found: "
+                                                + orderId
+                                )
                 );
     }
 
@@ -201,13 +301,17 @@ public class OrderService {
             Order order,
             User currentUser
     ) {
-        if (currentUser.getRole() == Role.ADMIN) {
+        if (currentUser.getRole()
+                == Role.ADMIN) {
+
             return;
         }
 
         if (!order.getUser()
                 .getId()
-                .equals(currentUser.getId())) {
+                .equals(
+                        currentUser.getId()
+                )) {
 
             throw new AccessDeniedException(
                     "You are not allowed to access this order"
@@ -220,15 +324,19 @@ public class OrderService {
 
         do {
             externalOrderId =
-                    "ord_" +
-                            UUID.randomUUID()
-                                    .toString()
-                                    .replace("-", "");
+                    "ord_"
+                            + UUID.randomUUID()
+                            .toString()
+                            .replace(
+                                    "-",
+                                    ""
+                            );
 
         } while (
-                orderRepository.existsByExternalOrderId(
-                        externalOrderId
-                )
+                orderRepository
+                        .existsByExternalOrderId(
+                                externalOrderId
+                        )
         );
 
         return externalOrderId;
