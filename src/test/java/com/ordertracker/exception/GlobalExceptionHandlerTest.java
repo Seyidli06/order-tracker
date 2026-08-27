@@ -22,6 +22,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+import com.ordertracker.order.entity.Order;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
+
 @ExtendWith(MockitoExtension.class)
 class GlobalExceptionHandlerTest {
 
@@ -312,6 +315,55 @@ class GlobalExceptionHandlerTest {
         assertNotEquals(
                 "Database exploded",
                 body.message()
+        );
+    }
+
+    @Test
+    void shouldReturnConflictForOptimisticLockingFailure() {
+        ObjectOptimisticLockingFailureException exception =
+                new ObjectOptimisticLockingFailureException(
+                        Order.class,
+                        10L
+                );
+
+        ResponseEntity<ApiError> response =
+                handler.handleOptimisticLockingFailure(
+                        exception,
+                        request
+                );
+
+        assertEquals(
+                HttpStatus.CONFLICT,
+                response.getStatusCode()
+        );
+
+        ApiError body = response.getBody();
+
+        assertNotNull(body);
+
+        assertEquals(
+                409,
+                body.status()
+        );
+
+        assertEquals(
+                "Conflict",
+                body.error()
+        );
+
+        assertEquals(
+                "Order was modified by another request. Please retry",
+                body.message()
+        );
+
+        assertEquals(
+                "/api/orders/10",
+                body.path()
+        );
+
+        assertEquals(
+                Map.of(),
+                body.validationErrors()
         );
     }
 }
