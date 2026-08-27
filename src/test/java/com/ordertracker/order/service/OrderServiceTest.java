@@ -3,6 +3,7 @@ package com.ordertracker.order.service;
 import com.ordertracker.common.enums.OrderStatus;
 import com.ordertracker.common.enums.Role;
 import com.ordertracker.common.enums.StatusChangeSource;
+import com.ordertracker.exception.ResourceConflictException;
 import com.ordertracker.order.dto.CreateOrderRequest;
 import com.ordertracker.order.dto.OrderResponse;
 import com.ordertracker.order.entity.Order;
@@ -35,10 +36,15 @@ class OrderServiceTest {
     private OrderRepository orderRepository;
 
     @Mock
-    private OrderStatusHistoryRepository orderStatusHistoryRepository;
+    private OrderStatusHistoryRepository
+            orderStatusHistoryRepository;
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private OrderStatusTransitionValidator
+            orderStatusTransitionValidator;
 
     private OrderService orderService;
 
@@ -50,7 +56,8 @@ class OrderServiceTest {
                 orderRepository,
                 orderStatusHistoryRepository,
                 userRepository,
-                new OrderMapper()
+                new OrderMapper(),
+                orderStatusTransitionValidator
         );
 
         regularUser = User.builder()
@@ -69,15 +76,28 @@ class OrderServiceTest {
                         "azn"
                 );
 
-        when(userRepository.findByEmail("user@test.com"))
-                .thenReturn(Optional.of(regularUser));
+        when(
+                userRepository.findByEmail(
+                        "user@test.com"
+                )
+        ).thenReturn(
+                Optional.of(regularUser)
+        );
 
-        when(orderRepository.save(any(Order.class)))
-                .thenAnswer(invocation -> {
-                    Order order = invocation.getArgument(0);
+        when(
+                orderRepository.save(
+                        any(Order.class)
+                )
+        ).thenAnswer(
+                invocation -> {
+                    Order order =
+                            invocation.getArgument(0);
+
                     order.setId(10L);
+
                     return order;
-                });
+                }
+        );
 
         OrderResponse response =
                 orderService.createOrder(
@@ -85,105 +105,204 @@ class OrderServiceTest {
                         request
                 );
 
-        assertEquals(10L, response.id());
-        assertEquals(1L, response.userId());
-        assertEquals(new BigDecimal("149.99"), response.totalAmount());
-        assertEquals("AZN", response.currency());
-        assertEquals(OrderStatus.CREATED, response.status());
+        assertEquals(
+                10L,
+                response.id()
+        );
 
-        assertNotNull(response.externalOrderId());
+        assertEquals(
+                1L,
+                response.userId()
+        );
+
+        assertEquals(
+                new BigDecimal("149.99"),
+                response.totalAmount()
+        );
+
+        assertEquals(
+                "AZN",
+                response.currency()
+        );
+
+        assertEquals(
+                OrderStatus.CREATED,
+                response.status()
+        );
+
+        assertNotNull(
+                response.externalOrderId()
+        );
+
         assertTrue(
-                response.externalOrderId().startsWith("ord_")
+                response.externalOrderId()
+                        .startsWith("ord_")
         );
 
         ArgumentCaptor<Order> orderCaptor =
-                ArgumentCaptor.forClass(Order.class);
+                ArgumentCaptor.forClass(
+                        Order.class
+                );
 
-        verify(orderRepository)
-                .save(orderCaptor.capture());
+        verify(
+                orderRepository
+        ).save(
+                orderCaptor.capture()
+        );
 
-        Order savedOrder = orderCaptor.getValue();
+        Order savedOrder =
+                orderCaptor.getValue();
 
-        assertEquals(regularUser, savedOrder.getUser());
-        assertEquals(OrderStatus.CREATED, savedOrder.getStatus());
-        assertEquals("AZN", savedOrder.getCurrency());
+        assertEquals(
+                regularUser,
+                savedOrder.getUser()
+        );
 
-        ArgumentCaptor<OrderStatusHistory> historyCaptor =
-                ArgumentCaptor.forClass(OrderStatusHistory.class);
+        assertEquals(
+                OrderStatus.CREATED,
+                savedOrder.getStatus()
+        );
 
-        verify(orderStatusHistoryRepository)
-                .save(historyCaptor.capture());
+        assertEquals(
+                "AZN",
+                savedOrder.getCurrency()
+        );
+
+        ArgumentCaptor<OrderStatusHistory>
+                historyCaptor =
+                ArgumentCaptor.forClass(
+                        OrderStatusHistory.class
+                );
+
+        verify(
+                orderStatusHistoryRepository
+        ).save(
+                historyCaptor.capture()
+        );
 
         OrderStatusHistory history =
                 historyCaptor.getValue();
 
-        assertEquals(savedOrder, history.getOrder());
-        assertNull(history.getPreviousStatus());
+        assertEquals(
+                savedOrder,
+                history.getOrder()
+        );
+
+        assertNull(
+                history.getPreviousStatus()
+        );
+
         assertEquals(
                 OrderStatus.CREATED,
                 history.getNewStatus()
         );
+
         assertEquals(
                 StatusChangeSource.USER,
                 history.getSource()
         );
-        assertNull(history.getReferenceId());
+
+        assertNull(
+                history.getReferenceId()
+        );
+
+        verifyNoInteractions(
+                orderStatusTransitionValidator
+        );
     }
 
     @Test
     void shouldDenyUserFromAccessingAnotherUsersOrder() {
-        User owner = regularUser;
+        User owner =
+                regularUser;
 
-        User anotherUser = User.builder()
-                .id(2L)
-                .email("another@test.com")
-                .password("encoded-password")
-                .role(Role.USER)
-                .build();
+        User anotherUser =
+                User.builder()
+                        .id(2L)
+                        .email(
+                                "another@test.com"
+                        )
+                        .password(
+                                "encoded-password"
+                        )
+                        .role(Role.USER)
+                        .build();
 
-        Order order = createOrder(
-                10L,
-                "ord_test_1",
-                owner,
-                OrderStatus.CREATED
+        Order order =
+                createOrder(
+                        10L,
+                        "ord_test_1",
+                        owner,
+                        OrderStatus.CREATED
+                );
+
+        when(
+                userRepository.findByEmail(
+                        "another@test.com"
+                )
+        ).thenReturn(
+                Optional.of(anotherUser)
         );
 
-        when(userRepository.findByEmail("another@test.com"))
-                .thenReturn(Optional.of(anotherUser));
-
-        when(orderRepository.findById(10L))
-                .thenReturn(Optional.of(order));
+        when(
+                orderRepository.findById(
+                        10L
+                )
+        ).thenReturn(
+                Optional.of(order)
+        );
 
         assertThrows(
                 AccessDeniedException.class,
-                () -> orderService.getOrder(
-                        10L,
-                        "another@test.com"
-                )
+                () ->
+                        orderService.getOrder(
+                                10L,
+                                "another@test.com"
+                        )
+        );
+
+        verifyNoInteractions(
+                orderStatusTransitionValidator
         );
     }
 
     @Test
     void shouldAllowAdminToAccessAnyOrder() {
-        User admin = User.builder()
-                .id(99L)
-                .email("admin@test.com")
-                .password("encoded-password")
-                .role(Role.ADMIN)
-                .build();
+        User admin =
+                User.builder()
+                        .id(99L)
+                        .email(
+                                "admin@test.com"
+                        )
+                        .password(
+                                "encoded-password"
+                        )
+                        .role(Role.ADMIN)
+                        .build();
 
-        Order order = createOrder(
-                10L,
-                "ord_test_1",
-                regularUser,
-                OrderStatus.CREATED
+        Order order =
+                createOrder(
+                        10L,
+                        "ord_test_1",
+                        regularUser,
+                        OrderStatus.CREATED
+                );
+
+        when(
+                userRepository.findByEmail(
+                        "admin@test.com"
+                )
+        ).thenReturn(
+                Optional.of(admin)
         );
 
-        when(userRepository.findByEmail("admin@test.com"))
-                .thenReturn(Optional.of(admin));
-
-        when(orderRepository.findById(10L))
-                .thenReturn(Optional.of(order));
+        when(
+                orderRepository.findById(
+                        10L
+                )
+        ).thenReturn(
+                Optional.of(order)
+        );
 
         OrderResponse response =
                 orderService.getOrder(
@@ -191,27 +310,43 @@ class OrderServiceTest {
                         "admin@test.com"
                 );
 
-        assertEquals(10L, response.id());
+        assertEquals(
+                10L,
+                response.id()
+        );
+
         assertEquals(
                 regularUser.getId(),
                 response.userId()
+        );
+
+        verifyNoInteractions(
+                orderStatusTransitionValidator
         );
     }
 
     @Test
     void shouldUpdateOrderStatusAndCreateHistory() {
-        Order order = createOrder(
-                10L,
-                "ord_test_1",
-                regularUser,
-                OrderStatus.PAYMENT_PENDING
+        Order order =
+                createOrder(
+                        10L,
+                        "ord_test_1",
+                        regularUser,
+                        OrderStatus.PAYMENT_PENDING
+                );
+
+        when(
+                orderRepository
+                        .findByExternalOrderId(
+                                "ord_test_1"
+                        )
+        ).thenReturn(
+                Optional.of(order)
         );
 
-        when(orderRepository.findByExternalOrderId("ord_test_1"))
-                .thenReturn(Optional.of(order));
-
-        when(orderRepository.save(order))
-                .thenReturn(order);
+        when(
+                orderRepository.save(order)
+        ).thenReturn(order);
 
         OrderResponse response =
                 orderService.updateStatus(
@@ -231,13 +366,30 @@ class OrderServiceTest {
                 order.getStatus()
         );
 
-        verify(orderRepository).save(order);
+        verify(
+                orderStatusTransitionValidator
+        ).validate(
+                OrderStatus.PAYMENT_PENDING,
+                OrderStatus.PAID
+        );
 
-        ArgumentCaptor<OrderStatusHistory> historyCaptor =
-                ArgumentCaptor.forClass(OrderStatusHistory.class);
+        verify(
+                orderRepository
+        ).save(
+                order
+        );
 
-        verify(orderStatusHistoryRepository)
-                .save(historyCaptor.capture());
+        ArgumentCaptor<OrderStatusHistory>
+                historyCaptor =
+                ArgumentCaptor.forClass(
+                        OrderStatusHistory.class
+                );
+
+        verify(
+                orderStatusHistoryRepository
+        ).save(
+                historyCaptor.capture()
+        );
 
         OrderStatusHistory history =
                 historyCaptor.getValue();
@@ -265,15 +417,22 @@ class OrderServiceTest {
 
     @Test
     void shouldNotCreateHistoryWhenStatusDoesNotChange() {
-        Order order = createOrder(
-                10L,
-                "ord_test_1",
-                regularUser,
-                OrderStatus.PAID
-        );
+        Order order =
+                createOrder(
+                        10L,
+                        "ord_test_1",
+                        regularUser,
+                        OrderStatus.PAID
+                );
 
-        when(orderRepository.findByExternalOrderId("ord_test_1"))
-                .thenReturn(Optional.of(order));
+        when(
+                orderRepository
+                        .findByExternalOrderId(
+                                "ord_test_1"
+                        )
+        ).thenReturn(
+                Optional.of(order)
+        );
 
         OrderResponse response =
                 orderService.updateStatus(
@@ -288,27 +447,130 @@ class OrderServiceTest {
                 response.status()
         );
 
-        verify(orderRepository, never())
-                .save(any(Order.class));
+        verify(
+                orderStatusTransitionValidator,
+                never()
+        ).validate(
+                any(OrderStatus.class),
+                any(OrderStatus.class)
+        );
 
-        verify(orderStatusHistoryRepository, never())
-                .save(any(OrderStatusHistory.class));
+        verify(
+                orderRepository,
+                never()
+        ).save(
+                any(Order.class)
+        );
+
+        verify(
+                orderStatusHistoryRepository,
+                never()
+        ).save(
+                any(OrderStatusHistory.class)
+        );
+    }
+
+    @Test
+    void shouldRejectInvalidStatusTransition() {
+        Order order =
+                createOrder(
+                        10L,
+                        "ord_test_1",
+                        regularUser,
+                        OrderStatus.DELIVERED
+                );
+
+        when(
+                orderRepository
+                        .findByExternalOrderId(
+                                "ord_test_1"
+                        )
+        ).thenReturn(
+                Optional.of(order)
+        );
+
+        doThrow(
+                new ResourceConflictException(
+                        "Invalid order status transition: "
+                                + "DELIVERED -> PAYMENT_PENDING"
+                )
+        ).when(
+                orderStatusTransitionValidator
+        ).validate(
+                OrderStatus.DELIVERED,
+                OrderStatus.PAYMENT_PENDING
+        );
+
+        ResourceConflictException exception =
+                assertThrows(
+                        ResourceConflictException.class,
+                        () ->
+                                orderService.updateStatus(
+                                        "ord_test_1",
+                                        OrderStatus.PAYMENT_PENDING,
+                                        StatusChangeSource.SYSTEM,
+                                        null
+                                )
+                );
+
+        assertEquals(
+                "Invalid order status transition: "
+                        + "DELIVERED -> PAYMENT_PENDING",
+                exception.getMessage()
+        );
+
+        /*
+         * Validator exception atdığı üçün
+         * order dəyişməməlidir.
+         */
+        assertEquals(
+                OrderStatus.DELIVERED,
+                order.getStatus()
+        );
+
+        verify(
+                orderStatusTransitionValidator
+        ).validate(
+                OrderStatus.DELIVERED,
+                OrderStatus.PAYMENT_PENDING
+        );
+
+        verify(
+                orderRepository,
+                never()
+        ).save(
+                any(Order.class)
+        );
+
+        verify(
+                orderStatusHistoryRepository,
+                never()
+        ).save(
+                any(OrderStatusHistory.class)
+        );
     }
 
     @Test
     void shouldThrowExceptionWhenOrderDoesNotExist() {
-        when(orderRepository.findByExternalOrderId("missing-order"))
-                .thenReturn(Optional.empty());
+        when(
+                orderRepository
+                        .findByExternalOrderId(
+                                "missing-order"
+                        )
+        ).thenReturn(
+                Optional.empty()
+        );
 
         EntityNotFoundException exception =
                 assertThrows(
                         EntityNotFoundException.class,
-                        () -> orderService.updateStatus(
-                                "missing-order",
-                                OrderStatus.PAID,
-                                StatusChangeSource.PAYMENT_WEBHOOK,
-                                "pay_evt_404"
-                        )
+                        () ->
+                                orderService.updateStatus(
+                                        "missing-order",
+                                        OrderStatus.PAID,
+                                        StatusChangeSource.PAYMENT_WEBHOOK,
+                                        "pay_evt_404"
+                                )
                 );
 
         assertEquals(
@@ -316,11 +578,27 @@ class OrderServiceTest {
                 exception.getMessage()
         );
 
-        verify(orderRepository, never())
-                .save(any(Order.class));
+        verify(
+                orderStatusTransitionValidator,
+                never()
+        ).validate(
+                any(OrderStatus.class),
+                any(OrderStatus.class)
+        );
 
-        verify(orderStatusHistoryRepository, never())
-                .save(any(OrderStatusHistory.class));
+        verify(
+                orderRepository,
+                never()
+        ).save(
+                any(Order.class)
+        );
+
+        verify(
+                orderStatusHistoryRepository,
+                never()
+        ).save(
+                any(OrderStatusHistory.class)
+        );
     }
 
     private Order createOrder(
@@ -331,9 +609,15 @@ class OrderServiceTest {
     ) {
         return Order.builder()
                 .id(id)
-                .externalOrderId(externalOrderId)
+                .externalOrderId(
+                        externalOrderId
+                )
                 .user(user)
-                .totalAmount(new BigDecimal("100.00"))
+                .totalAmount(
+                        new BigDecimal(
+                                "100.00"
+                        )
+                )
                 .currency("AZN")
                 .status(status)
                 .build();
