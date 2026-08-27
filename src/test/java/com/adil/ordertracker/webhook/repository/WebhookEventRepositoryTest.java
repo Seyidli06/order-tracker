@@ -3,12 +3,13 @@ package com.adil.ordertracker.webhook.repository;
 import com.adil.ordertracker.support.TestDataFactory;
 import com.ordertracker.audit.WebhookAuditLog;
 import com.ordertracker.audit.WebhookAuditLogRepository;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -30,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class WebhookEventRepositoryTest {
 
     @Container
+    @SuppressWarnings("resource")
     static PostgreSQLContainer<?> postgresContainer = new PostgreSQLContainer<>("postgres:16-alpine")
             .withDatabaseName("testdb")
             .withUsername("testuser")
@@ -53,6 +55,11 @@ class WebhookEventRepositoryTest {
     @BeforeAll
     static void beforeAll() {
         postgresContainer.start();
+    }
+
+    @AfterAll
+    static void afterAll() {
+        postgresContainer.stop();
     }
 
     @BeforeEach
@@ -130,7 +137,9 @@ class WebhookEventRepositoryTest {
         auditLog2.setRetryCount(2);
         webhookAuditLogRepository.save(auditLog2);
 
-        List<WebhookAuditLog> failedLogs = webhookAuditLogRepository.findFailedWebhooksForRetry(3);
+        List<WebhookAuditLog> failedLogs = webhookAuditLogRepository.findFailedWebhooksForRetry(
+                WebhookAuditLog.ProcessingStatus.FAILED, 3
+        );
 
         assertEquals(1, failedLogs.size());
         assertEquals("evt_002", failedLogs.get(0).getEventId());
@@ -141,7 +150,9 @@ class WebhookEventRepositoryTest {
         auditLog2.setRetryCount(5);
         webhookAuditLogRepository.save(auditLog2);
 
-        List<WebhookAuditLog> failedLogs = webhookAuditLogRepository.findFailedWebhooksForRetry(3);
+        List<WebhookAuditLog> failedLogs = webhookAuditLogRepository.findFailedWebhooksForRetry(
+                WebhookAuditLog.ProcessingStatus.FAILED, 3
+        );
 
         assertEquals(0, failedLogs.size());
     }
