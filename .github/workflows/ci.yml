@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+
   pull_request:
     branches:
       - main
@@ -28,6 +29,12 @@ jobs:
 
       - name: Compile project
         run: ./mvnw clean compile
+
+      - name: Run stable backend tests
+        run: >
+          ./mvnw
+          -Dtest=AuthServiceTest,AuthControllerTest,JwtServiceTest,OrderServiceTest,OrderStatusTransitionValidatorTest,OrderControllerTest,SecurityIntegrationTest,WebhookOrderStatusHandlerTest
+          test
 
       - name: Check whitespace errors
         run: git diff --check
