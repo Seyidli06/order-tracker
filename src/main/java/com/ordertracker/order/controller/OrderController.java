@@ -10,16 +10,27 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 import java.security.Principal;
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/orders")
 @RequiredArgsConstructor
+@Tag(
+        name = "Orders",
+        description = "Order management and status history"
+)
+@SecurityRequirement(name = "bearerAuth")
 public class OrderController {
 
     private final OrderService orderService;
 
+
+    @Operation(summary = "Create a new order")
     @PostMapping
     public ResponseEntity<OrderResponse> createOrder(
             @Valid @RequestBody CreateOrderRequest request,
@@ -36,6 +47,7 @@ public class OrderController {
                 .body(response);
     }
 
+    @Operation(summary = "Get current user's orders")
     @GetMapping
     public ResponseEntity<List<OrderResponse>> getMyOrders(
             Principal principal
@@ -47,6 +59,7 @@ public class OrderController {
         );
     }
 
+    @Operation(summary = "Get order by ID")
     @GetMapping("/{orderId}")
     public ResponseEntity<OrderResponse> getOrder(
             @PathVariable Long orderId,
@@ -60,6 +73,7 @@ public class OrderController {
         );
     }
 
+    @Operation(summary = "Get order status history")
     @GetMapping("/{orderId}/history")
     public ResponseEntity<List<OrderHistoryResponse>> getOrderHistory(
             @PathVariable Long orderId,
