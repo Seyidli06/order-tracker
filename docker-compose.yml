@@ -1,0 +1,70 @@
+services:
+
+  postgres:
+    image: postgres:18
+    container_name: order-tracker-postgres
+
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-order_tracker}
+      POSTGRES_USER: ${POSTGRES_USER:-order_tracker}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-order_tracker_dev}
+
+    ports:
+      - "${POSTGRES_HOST_PORT:-55432}:5432"
+
+    volumes:
+      - order_tracker_postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-order_tracker} -d ${POSTGRES_DB:-order_tracker}"
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: order-tracker-mailpit
+
+    ports:
+      - "${MAILPIT_SMTP_HOST_PORT:-1025}:1025"
+      - "${MAILPIT_UI_HOST_PORT:-8025}:8025"
+
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    container_name: order-tracker-app
+
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+
+      DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-order_tracker}
+      DB_USERNAME: ${POSTGRES_USER:-order_tracker}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-order_tracker_dev}
+
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
+
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be configured in .env}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-3600000}
+
+    ports:
+      - "${APP_HOST_PORT:-8080}:8080"
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+      mailpit:
+        condition: service_started
+
+
+volumes:
+  order_tracker_postgres_data:
