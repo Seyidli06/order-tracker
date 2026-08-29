@@ -19,6 +19,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import com.ordertracker.security.ratelimit.RateLimitFilter;
 
 @Configuration
 @EnableMethodSecurity
@@ -29,6 +30,7 @@ public class SecurityConfig {
     private final CustomUserDetailsService customUserDetailsService;
     private final RestAuthenticationEntryPoint authenticationEntryPoint;
     private final RestAccessDeniedHandler accessDeniedHandler;
+    private final RateLimitFilter rateLimitFilter;
 
     @Bean
     public SecurityFilterChain securityFilterChain(
@@ -78,6 +80,11 @@ public class SecurityConfig {
                 .addFilterBefore(
                         jwtAuthenticationFilter,
                         UsernamePasswordAuthenticationFilter.class
+                )
+
+                .addFilterAfter(
+                        rateLimitFilter,
+                        JwtAuthenticationFilter.class
                 );
 
         return http.build();
