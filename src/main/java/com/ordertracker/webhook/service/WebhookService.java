@@ -2,6 +2,7 @@ package com.ordertracker.webhook.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ordertracker.audit.AuditService;
+import com.ordertracker.order.integration.WebhookOrderStatusHandler;
 import com.ordertracker.webhook.dto.PaymentWebhookPayload;
 import com.ordertracker.webhook.dto.ShipmentWebhookPayload;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +17,7 @@ public class WebhookService {
 
     private final AuditService auditService;
     private final ObjectMapper objectMapper;
+    private final WebhookOrderStatusHandler webhookOrderStatusHandler;
 
     @Async
     public void processPaymentWebhook(PaymentWebhookPayload payload, String headersJson) {
@@ -35,9 +37,11 @@ public class WebhookService {
                     payload.getPaymentData().getAmount(),
                     payload.getPaymentData().getStatus());
 
-            String orderStatus = determineOrderStatusFromPayment(payload.getPaymentData().getStatus());
-            log.info("Determined order status '{}' for order {} based on payment status {}",
-                    orderStatus, payload.getPaymentData().getOrderId(), payload.getPaymentData().getStatus());
+            webhookOrderStatusHandler.handlePaymentStatus(
+                    payload.getPaymentData().getOrderId(),
+                    payload.getPaymentData().getStatus(),
+                    payload.getEventId()
+            );
 
             auditService.markAsProcessed(auditLogId);
             log.info("Successfully processed payment webhook: eventId={}", payload.getEventId());
@@ -69,9 +73,11 @@ public class WebhookService {
                     payload.getShipmentData().getCarrier(),
                     payload.getShipmentData().getStatus());
 
-            String orderStatus = determineOrderStatusFromShipment(payload.getShipmentData().getStatus());
-            log.info("Determined order status '{}' for order {} based on shipment status {}",
-                    orderStatus, payload.getShipmentData().getOrderId(), payload.getShipmentData().getStatus());
+            webhookOrderStatusHandler.handleShipmentStatus(
+                    payload.getShipmentData().getOrderId(),
+                    payload.getShipmentData().getStatus(),
+                    payload.getEventId()
+            );
 
             auditService.markAsProcessed(auditLogId);
             log.info("Successfully processed shipment webhook: eventId={}", payload.getEventId());
@@ -82,27 +88,5 @@ public class WebhookService {
                 auditService.markAsFailed(auditLogId, e.getMessage());
             }
         }
-    }
-
-    private String determineOrderStatusFromPayment(String paymentStatus) {
-        return switch (paymentStatus.toLowerCase()) {
-            case "completed", "succeeded", "paid" -> "PAID";
-            case "failed", "declined", "cancelled" -> "PAYMENT_FAILED";
-            case "pending", "processing" -> "PAYMENT_PENDING";
-            case "refunded" -> "REFUNDED";
-            default -> "PAYMENT_UNKNOWN";
-        };
-    }
-
-    private String determineOrderStatusFromShipment(String shipmentStatus) {
-        return switch (shipmentStatus.toLowerCase()) {
-            case "shipped", "in_transit", "on_the_way" -> "SHIPPED";
-            case "delivered" -> "DELIVERED";
-            case "out_for_delivery" -> "OUT_FOR_DELIVERY";
-            case "cancelled" -> "CANCELLED";
-            case "returned" -> "RETURNED";
-            case "pending", "label_created" -> "PROCESSING";
-            default -> "SHIPMENT_UNKNOWN";
-        };
     }
 }
