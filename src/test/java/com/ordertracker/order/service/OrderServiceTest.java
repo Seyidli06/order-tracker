@@ -622,4 +622,213 @@ class OrderServiceTest {
                 .status(status)
                 .build();
     }
+    @Test
+    void shouldCancelOwnedOrderAndCreateHistory() {
+        Order order =
+                createOrder(
+                        10L,
+                        "ord_test_1",
+                        regularUser,
+                        OrderStatus.CREATED
+                );
+
+        when(
+                userRepository.findByEmail(
+                        "user@test.com"
+                )
+        ).thenReturn(
+                Optional.of(regularUser)
+        );
+
+        when(
+                orderRepository.findById(10L)
+        ).thenReturn(
+                Optional.of(order)
+        );
+
+        when(
+                orderRepository.save(order)
+        ).thenReturn(order);
+
+        OrderResponse response =
+                orderService.cancelOrder(
+                        10L,
+                        "user@test.com"
+                );
+
+        assertEquals(
+                OrderStatus.CANCELLED,
+                response.status()
+        );
+
+        assertEquals(
+                OrderStatus.CANCELLED,
+                order.getStatus()
+        );
+
+        verify(
+                orderStatusTransitionValidator
+        ).validate(
+                OrderStatus.CREATED,
+                OrderStatus.CANCELLED
+        );
+
+        ArgumentCaptor<OrderStatusHistory>
+                historyCaptor =
+                ArgumentCaptor.forClass(
+                        OrderStatusHistory.class
+                );
+
+        verify(
+                orderStatusHistoryRepository
+        ).save(
+                historyCaptor.capture()
+        );
+
+        OrderStatusHistory history =
+                historyCaptor.getValue();
+
+        assertEquals(
+                OrderStatus.CREATED,
+                history.getPreviousStatus()
+        );
+
+        assertEquals(
+                OrderStatus.CANCELLED,
+                history.getNewStatus()
+        );
+
+        assertEquals(
+                StatusChangeSource.USER,
+                history.getSource()
+        );
+    }
+
+    @Test
+    void shouldNotCreateDuplicateHistoryWhenOrderAlreadyCancelled() {
+        Order order =
+                createOrder(
+                        10L,
+                        "ord_test_1",
+                        regularUser,
+                        OrderStatus.CANCELLED
+                );
+
+        when(
+                userRepository.findByEmail(
+                        "user@test.com"
+                )
+        ).thenReturn(
+                Optional.of(regularUser)
+        );
+
+        when(
+                orderRepository.findById(10L)
+        ).thenReturn(
+                Optional.of(order)
+        );
+
+        OrderResponse response =
+                orderService.cancelOrder(
+                        10L,
+                        "user@test.com"
+                );
+
+        assertEquals(
+                OrderStatus.CANCELLED,
+                response.status()
+        );
+
+        verify(
+                orderStatusTransitionValidator,
+                never()
+        ).validate(
+                any(OrderStatus.class),
+                any(OrderStatus.class)
+        );
+
+        verify(
+                orderRepository,
+                never()
+        ).save(
+                any(Order.class)
+        );
+
+        verify(
+                orderStatusHistoryRepository,
+                never()
+        ).save(
+                any(OrderStatusHistory.class)
+        );
+    }
+
+    @Test
+    void shouldRejectCancellationOfAnotherUsersOrder() {
+        User anotherUser = User.builder()
+                .id(2L)
+                .email("another@test.com")
+                .password("encoded-password")
+                .role(Role.USER)
+                .build();
+
+        Order order =
+                createOrder(
+                        10L,
+                        "ord_test_1",
+                        regularUser,
+                        OrderStatus.CREATED
+                );
+
+        when(
+                userRepository.findByEmail(
+                        "another@test.com"
+                )
+        ).thenReturn(
+                Optional.of(anotherUser)
+        );
+
+        when(
+                orderRepository.findById(10L)
+        ).thenReturn(
+                Optional.of(order)
+        );
+
+        AccessDeniedException exception =
+                assertThrows(
+                        AccessDeniedException.class,
+                        () ->
+                                orderService.cancelOrder(
+                                        10L,
+                                        "another@test.com"
+                                )
+                );
+
+        assertEquals(
+                "You are not allowed to access this order",
+                exception.getMessage()
+        );
+
+        assertEquals(
+                OrderStatus.CREATED,
+                order.getStatus()
+        );
+
+        verifyNoInteractions(
+                orderStatusTransitionValidator
+        );
+
+        verify(
+                orderRepository,
+                never()
+        ).save(
+                any(Order.class)
+        );
+
+        verify(
+                orderStatusHistoryRepository,
+                never()
+        ).save(
+                any(OrderStatusHistory.class)
+        );
+    }
 }
