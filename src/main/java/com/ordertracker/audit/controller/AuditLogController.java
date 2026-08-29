@@ -2,6 +2,7 @@ package com.ordertracker.audit.controller;
 
 import com.ordertracker.audit.AuditService;
 import com.ordertracker.audit.WebhookAuditLog;
+import com.ordertracker.audit.dto.WebhookAuditResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/audit")
@@ -31,66 +33,59 @@ public class AuditLogController {
 
     private final AuditService auditService;
 
-    @GetMapping("/logs/{eventId}")
+    @GetMapping("/webhooks/{eventId}")
     @Operation(summary = "Get webhook log by event ID", description = "Retrieve a specific webhook audit log by its event ID")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved audit log"),
             @ApiResponse(responseCode = "404", description = "Audit log not found")
     })
-    public ResponseEntity<WebhookAuditLog> getLogByEventId(
+    public ResponseEntity<WebhookAuditResponse> getWebhookByEventId(
             @Parameter(description = "Event ID from the webhook source") @PathVariable String eventId) {
         log.info("Fetching audit log for eventId: {}", eventId);
         WebhookAuditLog auditLog = auditService.findByEventId(eventId);
-        return ResponseEntity.ok(auditLog);
+        return ResponseEntity.ok(WebhookAuditResponse.fromEntity(auditLog));
     }
 
-    @GetMapping("/logs")
-    @Operation(summary = "Get all logs by status", description = "Retrieve all webhook audit logs filtered by processing status")
+    @GetMapping("/webhooks")
+    @Operation(summary = "Get all webhooks by status", description = "Retrieve all webhook audit logs filtered by processing status")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved audit logs")
     })
-    public ResponseEntity<List<WebhookAuditLog>> getLogsByStatus(
+    public ResponseEntity<List<WebhookAuditResponse>> getWebhooksByStatus(
             @Parameter(description = "Processing status (PENDING, PROCESSED, FAILED)")
             @RequestParam WebhookAuditLog.ProcessingStatus status) {
         log.info("Fetching audit logs with status: {}", status);
         List<WebhookAuditLog> logs = auditService.findByStatus(status);
-        return ResponseEntity.ok(logs);
+        List<WebhookAuditResponse> responses = logs.stream()
+                .map(WebhookAuditResponse::fromEntity)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(responses);
     }
 
-    @GetMapping("/logs/date-range")
-    @Operation(summary = "Get logs by date range", description = "Retrieve webhook audit logs within a specific date range")
+    @GetMapping("/webhooks/range")
+    @Operation(summary = "Get webhooks by date range", description = "Retrieve webhook audit logs within a specific date range")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved audit logs")
     })
-    public ResponseEntity<List<WebhookAuditLog>> getLogsByDateRange(
+    public ResponseEntity<List<WebhookAuditResponse>> getWebhooksByDateRange(
             @Parameter(description = "Start date (ISO format)")
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
             @Parameter(description = "End date (ISO format)")
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant endDate) {
-        log.info("Fetching audit logs between {} and {}", startDate, endDate);
-        List<WebhookAuditLog> logs = auditService.findByDateRange(startDate, endDate);
-        return ResponseEntity.ok(logs);
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to) {
+        log.info("Fetching audit logs between {} and {}", from, to);
+        List<WebhookAuditLog> logs = auditService.findByDateRange(from, to);
+        List<WebhookAuditResponse> responses = logs.stream()
+                .map(WebhookAuditResponse::fromEntity)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(responses);
     }
 
-    @GetMapping("/logs/failed/retry")
-    @Operation(summary = "Get failed logs for retry", description = "Retrieve failed webhook logs that are eligible for retry")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Successfully retrieved failed logs")
-    })
-    public ResponseEntity<List<WebhookAuditLog>> getFailedLogsForRetry(
-            @Parameter(description = "Maximum retry count")
-            @RequestParam(defaultValue = "3") int maxRetries) {
-        log.info("Fetching failed logs for retry with maxRetries: {}", maxRetries);
-        List<WebhookAuditLog> logs = auditService.findFailedWebhooksForRetry(maxRetries);
-        return ResponseEntity.ok(logs);
-    }
-
-    @GetMapping("/logs/count")
-    @Operation(summary = "Count logs by status", description = "Get the count of webhook audit logs by processing status")
+    @GetMapping("/webhooks/count")
+    @Operation(summary = "Count webhooks by status", description = "Get the count of webhook audit logs by processing status")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved count")
     })
-    public ResponseEntity<Long> getCountByStatus(
+    public ResponseEntity<Long> getWebhooksCountByStatus(
             @Parameter(description = "Processing status (PENDING, PROCESSED, FAILED)")
             @RequestParam WebhookAuditLog.ProcessingStatus status) {
         log.info("Counting audit logs with status: {}", status);
