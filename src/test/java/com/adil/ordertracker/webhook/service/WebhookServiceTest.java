@@ -4,7 +4,13 @@ import com.adil.ordertracker.support.TestDataFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ordertracker.audit.AuditService;
 import com.ordertracker.audit.WebhookAuditLog;
+import com.ordertracker.common.enums.OrderStatus;
+import com.ordertracker.notification.dto.EmailNotificationRequest;
+import com.ordertracker.notification.service.NotificationService;
+import com.ordertracker.order.entity.Order;
 import com.ordertracker.order.integration.WebhookOrderStatusHandler;
+import com.ordertracker.order.repository.OrderRepository;
+import com.ordertracker.user.entity.User;
 import com.ordertracker.webhook.dto.PaymentWebhookPayload;
 import com.ordertracker.webhook.dto.ShipmentWebhookPayload;
 import com.ordertracker.webhook.service.WebhookService;
@@ -23,6 +29,9 @@ import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
+
+import java.util.Optional;
 
 @ExtendWith(MockitoExtension.class)
 class WebhookServiceTest {
@@ -36,12 +45,20 @@ class WebhookServiceTest {
     @Mock
     private WebhookOrderStatusHandler webhookOrderStatusHandler;
 
+    @Mock
+    private NotificationService notificationService;
+
+    @Mock
+    private OrderRepository orderRepository;
+
     @InjectMocks
     private WebhookService webhookService;
 
     private PaymentWebhookPayload paymentPayload;
     private ShipmentWebhookPayload shipmentPayload;
     private WebhookAuditLog auditLog;
+    private Order order;
+    private User user;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -49,9 +66,23 @@ class WebhookServiceTest {
         shipmentPayload = TestDataFactory.createShipmentWebhookPayload();
         auditLog = TestDataFactory.createWebhookAuditLog();
 
+        user = User.builder()
+                .id(1L)
+                .email("test@example.com")
+                .password("password")
+                .build();
+
+        order = Order.builder()
+                .id(1L)
+                .externalOrderId("order_test_12345")
+                .user(user)
+                .status(OrderStatus.PAID)
+                .build();
+
         lenient().when(objectMapper.writeValueAsString(any())).thenReturn("{\"test\":\"payload\"}");
         lenient().when(auditService.logIncomingWebhook(anyString(), anyString(), anyString(), anyString(), anyString()))
                 .thenReturn(auditLog);
+        lenient().when(orderRepository.findByExternalOrderId(anyString())).thenReturn(Optional.of(order));
     }
 
     @Test
@@ -72,6 +103,7 @@ class WebhookServiceTest {
                 eq(paymentPayload.getPaymentData().getStatus()),
                 eq(paymentPayload.getEventId())
         );
+        verify(notificationService).sendOrderStatusEmail(any(EmailNotificationRequest.class));
         verify(auditService).markAsProcessed(auditLog.getId());
     }
 
@@ -93,6 +125,7 @@ class WebhookServiceTest {
                 eq(paymentPayload.getPaymentData().getStatus()),
                 eq(paymentPayload.getEventId())
         );
+        verify(notificationService).sendOrderStatusEmail(any(EmailNotificationRequest.class));
         verify(auditService).markAsProcessed(auditLog.getId());
     }
 
@@ -114,6 +147,7 @@ class WebhookServiceTest {
                 eq(shipmentPayload.getShipmentData().getStatus()),
                 eq(shipmentPayload.getEventId())
         );
+        verify(notificationService).sendOrderStatusEmail(any(EmailNotificationRequest.class));
         verify(auditService).markAsProcessed(auditLog.getId());
     }
 
@@ -135,6 +169,7 @@ class WebhookServiceTest {
                 eq(shipmentPayload.getShipmentData().getStatus()),
                 eq(shipmentPayload.getEventId())
         );
+        verify(notificationService).sendOrderStatusEmail(any(EmailNotificationRequest.class));
         verify(auditService).markAsProcessed(auditLog.getId());
     }
 
@@ -187,6 +222,7 @@ class WebhookServiceTest {
                 eq(paymentPayload.getPaymentData().getStatus()),
                 eq(paymentPayload.getEventId())
         );
+        verify(notificationService).sendOrderStatusEmail(any(EmailNotificationRequest.class));
         verify(auditService).markAsProcessed(auditLog.getId());
     }
 
@@ -209,6 +245,7 @@ class WebhookServiceTest {
                 eq(shipmentPayload.getShipmentData().getStatus()),
                 eq(shipmentPayload.getEventId())
         );
+        verify(notificationService).sendOrderStatusEmail(any(EmailNotificationRequest.class));
         verify(auditService).markAsProcessed(auditLog.getId());
     }
 
@@ -230,6 +267,7 @@ class WebhookServiceTest {
                 eq(paymentPayload.getPaymentData().getStatus()),
                 eq(paymentPayload.getEventId())
         );
+        verify(notificationService).sendOrderStatusEmail(any(EmailNotificationRequest.class));
         verify(auditService).markAsProcessed(auditLog.getId());
     }
 
@@ -251,6 +289,7 @@ class WebhookServiceTest {
                 eq(shipmentPayload.getShipmentData().getStatus()),
                 eq(shipmentPayload.getEventId())
         );
+        verify(notificationService).sendOrderStatusEmail(any(EmailNotificationRequest.class));
         verify(auditService).markAsProcessed(auditLog.getId());
     }
 
@@ -346,5 +385,77 @@ class WebhookServiceTest {
                 eq("{}")
         );
         verify(auditService).markAsFailed(auditLog.getId(), "General processing error");
+    }
+
+    @Test
+    void processPaymentWebhook_SuccessfulUpdate_SendsNotification() throws Exception {
+        webhookService.processPaymentWebhook(paymentPayload, "{}");
+
+        verify(notificationService).sendOrderStatusEmail(any(EmailNotificationRequest.class));
+    }
+
+    @Test
+    void processShipmentWebhook_SuccessfulUpdate_SendsNotification() throws Exception {
+        webhookService.processShipmentWebhook(shipmentPayload, "{}");
+
+        verify(notificationService).sendOrderStatusEmail(any(EmailNotificationRequest.class));
+    }
+
+    @Test
+    void processPaymentWebhook_FailedUpdate_DoesNotSendNotification() throws Exception {
+        doThrow(new RuntimeException("Order update failed"))
+                .when(webhookOrderStatusHandler).handlePaymentStatus(anyString(), anyString(), anyString());
+
+        webhookService.processPaymentWebhook(paymentPayload, "{}");
+
+        verify(notificationService, never()).sendOrderStatusEmail(any(EmailNotificationRequest.class));
+    }
+
+    @Test
+    void processShipmentWebhook_FailedUpdate_DoesNotSendNotification() throws Exception {
+        doThrow(new RuntimeException("Order update failed"))
+                .when(webhookOrderStatusHandler).handleShipmentStatus(anyString(), anyString(), anyString());
+
+        webhookService.processShipmentWebhook(shipmentPayload, "{}");
+
+        verify(notificationService, never()).sendOrderStatusEmail(any(EmailNotificationRequest.class));
+    }
+
+    @Test
+    void processPaymentWebhook_MailException_DoesNotBreakMainFlow() throws Exception {
+        doThrow(new RuntimeException("Mail server error"))
+                .when(notificationService).sendOrderStatusEmail(any(EmailNotificationRequest.class));
+
+        webhookService.processPaymentWebhook(paymentPayload, "{}");
+
+        verify(auditService).markAsProcessed(auditLog.getId());
+    }
+
+    @Test
+    void processShipmentWebhook_MailException_DoesNotBreakMainFlow() throws Exception {
+        doThrow(new RuntimeException("Mail server error"))
+                .when(notificationService).sendOrderStatusEmail(any(EmailNotificationRequest.class));
+
+        webhookService.processShipmentWebhook(shipmentPayload, "{}");
+
+        verify(auditService).markAsProcessed(auditLog.getId());
+    }
+
+    @Test
+    void processPaymentWebhook_OrderNotFound_DoesNotSendNotification() throws Exception {
+        when(orderRepository.findByExternalOrderId(anyString())).thenReturn(Optional.empty());
+
+        webhookService.processPaymentWebhook(paymentPayload, "{}");
+
+        verify(notificationService, never()).sendOrderStatusEmail(any(EmailNotificationRequest.class));
+    }
+
+    @Test
+    void processShipmentWebhook_OrderNotFound_DoesNotSendNotification() throws Exception {
+        when(orderRepository.findByExternalOrderId(anyString())).thenReturn(Optional.empty());
+
+        webhookService.processShipmentWebhook(shipmentPayload, "{}");
+
+        verify(notificationService, never()).sendOrderStatusEmail(any(EmailNotificationRequest.class));
     }
 }

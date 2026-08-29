@@ -2,7 +2,12 @@ package com.ordertracker.webhook.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ordertracker.audit.AuditService;
+import com.ordertracker.common.enums.OrderStatus;
+import com.ordertracker.notification.dto.EmailNotificationRequest;
+import com.ordertracker.notification.service.NotificationService;
+import com.ordertracker.order.entity.Order;
 import com.ordertracker.order.integration.WebhookOrderStatusHandler;
+import com.ordertracker.order.repository.OrderRepository;
 import com.ordertracker.webhook.dto.PaymentWebhookPayload;
 import com.ordertracker.webhook.dto.ShipmentWebhookPayload;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +23,8 @@ public class WebhookService {
     private final AuditService auditService;
     private final ObjectMapper objectMapper;
     private final WebhookOrderStatusHandler webhookOrderStatusHandler;
+    private final NotificationService notificationService;
+    private final OrderRepository orderRepository;
 
     @Async
     public void processPaymentWebhook(PaymentWebhookPayload payload, String headersJson) {
@@ -42,6 +49,9 @@ public class WebhookService {
                     payload.getPaymentData().getStatus(),
                     payload.getEventId()
             );
+
+            // Send notification after successful order status update
+            sendOrderStatusNotification(payload.getPaymentData().getOrderId(), payload.getEventId());
 
             auditService.markAsProcessed(auditLogId);
             log.info("Successfully processed payment webhook: eventId={}", payload.getEventId());
@@ -79,6 +89,9 @@ public class WebhookService {
                     payload.getEventId()
             );
 
+            // Send notification after successful order status update
+            sendOrderStatusNotification(payload.getShipmentData().getOrderId(), payload.getEventId());
+
             auditService.markAsProcessed(auditLogId);
             log.info("Successfully processed shipment webhook: eventId={}", payload.getEventId());
 
@@ -87,6 +100,46 @@ public class WebhookService {
             if (auditLogId != null) {
                 auditService.markAsFailed(auditLogId, e.getMessage());
             }
+        }
+    }
+
+    @Async
+    private void sendOrderStatusNotification(String externalOrderId, String eventId) {
+        try {
+            Order order = orderRepository.findByExternalOrderId(externalOrderId)
+                    .orElse(null);
+
+            if (order == null) {
+                log.warn("Order not found for notification: externalOrderId={}, eventId={}", externalOrderId, eventId);
+                return;
+            }
+
+            String recipientEmail = order.getUser().getEmail();
+            OrderStatus orderStatus = order.getStatus();
+
+            String subject = "Order Status Update - " + externalOrderId;
+            String body = String.format(
+                    "Your order %s has been updated to status: %s",
+                    externalOrderId,
+                    orderStatus
+            );
+
+            EmailNotificationRequest request = EmailNotificationRequest.builder()
+                    .recipientEmail(recipientEmail)
+                    .subject(subject)
+                    .body(body)
+                    .orderId(externalOrderId)
+                    .build();
+
+            notificationService.sendOrderStatusEmail(request);
+
+            log.info("Order status notification sent: orderId={}, status={}, email={}",
+                    externalOrderId, orderStatus, recipientEmail);
+
+        } catch (Exception e) {
+            log.error("Failed to send order status notification: externalOrderId={}, eventId={}",
+                    externalOrderId, eventId, e);
+            // Don't rethrow - notification failure should not affect the main webhook flow
         }
     }
 }
