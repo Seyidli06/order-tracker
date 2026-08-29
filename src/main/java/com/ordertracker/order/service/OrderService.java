@@ -147,6 +147,72 @@ public class OrderService {
                 .toList();
     }
 
+    public OrderResponse cancelOrder(
+            Long orderId,
+            String email
+    ) {
+        User currentUser =
+                getUserByEmail(email);
+
+        Order order =
+                getOrderById(orderId);
+
+        validateOrderAccess(
+                order,
+                currentUser
+        );
+
+        OrderStatus previousStatus =
+                order.getStatus();
+
+        /*
+         * Idempotency:
+         *
+         * Order artıq CANCELLED vəziyyətindədirsə,
+         * yenidən save və history yaradılmır.
+         */
+        if (previousStatus
+                == OrderStatus.CANCELLED) {
+
+            return orderMapper.toResponse(
+                    order
+            );
+        }
+
+        orderStatusTransitionValidator
+                .validate(
+                        previousStatus,
+                        OrderStatus.CANCELLED
+                );
+
+        order.setStatus(
+                OrderStatus.CANCELLED
+        );
+
+        Order savedOrder =
+                orderRepository.save(
+                        order
+                );
+
+        StatusChangeSource source =
+                currentUser.getRole()
+                        == Role.ADMIN
+                        ? StatusChangeSource.ADMIN
+                        : StatusChangeSource.USER;
+
+        saveHistory(
+                savedOrder,
+                previousStatus,
+                OrderStatus.CANCELLED,
+                source,
+                null
+        );
+
+        return orderMapper.toResponse(
+                savedOrder
+        );
+    }
+
     public OrderResponse updateStatus(
             String externalOrderId,
             OrderStatus newStatus,

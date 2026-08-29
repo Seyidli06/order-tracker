@@ -215,4 +215,52 @@ class OrderControllerTest {
                 )
         );
     }
+
+    @Test
+    void shouldCancelOrder() {
+        OrderResponse cancelledOrder =
+                new OrderResponse(
+                        10L,
+                        "ord_test_123",
+                        1L,
+                        new BigDecimal("149.99"),
+                        "AZN",
+                        OrderStatus.CANCELLED,
+                        Instant.parse(
+                                "2026-08-26T10:00:00Z"
+                        ),
+                        Instant.parse(
+                                "2026-08-26T10:05:00Z"
+                        )
+                );
+
+        when(
+                orderService.cancelOrder(
+                        10L,
+                        "user@test.com"
+                )
+        ).thenReturn(cancelledOrder);
+
+        ResponseEntity<OrderResponse> response =
+                orderController.cancelOrder(
+                        10L,
+                        principal
+                );
+
+        assertEquals(
+                HttpStatus.OK,
+                response.getStatusCode()
+        );
+
+        assertEquals(
+                OrderStatus.CANCELLED,
+                response.getBody().status()
+        );
+
+        verify(orderService)
+                .cancelOrder(
+                        10L,
+                        "user@test.com"
+                );
+    }
 }
