@@ -1,4 +1,4 @@
-package com.adil.ordertracker.support;
+package com.ordertracker.support;
 
 import com.ordertracker.audit.WebhookAuditLog;
 import com.ordertracker.notification.dto.EmailNotificationRequest;

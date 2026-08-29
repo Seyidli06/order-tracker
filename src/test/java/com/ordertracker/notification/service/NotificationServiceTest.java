@@ -1,6 +1,6 @@
-package com.adil.ordertracker.notification.service;
+package com.ordertracker.notification.service;
 
-import com.adil.ordertracker.support.TestDataFactory;
+import com.ordertracker.support.TestDataFactory;
 import com.ordertracker.notification.dto.EmailNotificationRequest;
 import com.ordertracker.notification.service.NotificationService;
 import org.junit.jupiter.api.BeforeEach;

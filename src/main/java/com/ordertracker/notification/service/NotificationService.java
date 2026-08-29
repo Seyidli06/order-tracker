@@ -19,6 +19,12 @@ public class NotificationService {
     @Async
     public void sendOrderStatusEmail(EmailNotificationRequest request) {
         try {
+            // Check if recipient email is null or blank
+            if (request.getRecipientEmail() == null || request.getRecipientEmail().isBlank()) {
+                log.warn("Cannot send email: recipient email is null or blank for orderId: {}", request.getOrderId());
+                return;
+            }
+
             SimpleMailMessage message = new SimpleMailMessage();
             message.setTo(request.getRecipientEmail());
             message.setSubject(request.getSubject());
