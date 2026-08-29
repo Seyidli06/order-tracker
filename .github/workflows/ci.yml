@@ -33,7 +33,6 @@ jobs:
       - name: Run stable backend tests
         run: >
           ./mvnw
-          -Dtest=AuthServiceTest,AuthControllerTest,JwtServiceTest,OrderServiceTest,OrderStatusTransitionValidatorTest,OrderControllerTest,CreateOrderRequestTest,SecurityIntegrationTest,WebhookOrderStatusHandlerTest          test
-
+          -Dtest=AuthServiceTest,AuthControllerTest,JwtServiceTest,OrderServiceTest,OrderStatusTransitionValidatorTest,OrderControllerTest,CreateOrderRequestTest,SecurityIntegrationTest,WebhookOrderStatusHandlerTest,RateLimitFilterTest          test
       - name: Check whitespace errors
         run: git diff --check
