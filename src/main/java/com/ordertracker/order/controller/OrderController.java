@@ -17,8 +17,14 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import java.security.Principal;
 import java.util.List;
 
+import com.ordertracker.common.dto.PageResponse;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import org.springframework.validation.annotation.Validated;
+
 @RestController
 @RequestMapping("/api/orders")
+@Validated
 @RequiredArgsConstructor
 @Tag(
         name = "Orders",
@@ -49,12 +55,24 @@ public class OrderController {
 
     @Operation(summary = "Get current user's orders")
     @GetMapping
-    public ResponseEntity<List<OrderResponse>> getMyOrders(
-            Principal principal
+    public ResponseEntity<PageResponse<OrderResponse>>
+    getMyOrders(
+            Principal principal,
+
+            @RequestParam(defaultValue = "0")
+            @Min(0)
+            int page,
+
+            @RequestParam(defaultValue = "20")
+            @Min(1)
+            @Max(100)
+            int size
     ) {
         return ResponseEntity.ok(
                 orderService.getMyOrders(
-                        principal.getName()
+                        principal.getName(),
+                        page,
+                        size
                 )
         );
     }
@@ -89,14 +107,26 @@ public class OrderController {
 
     @Operation(summary = "Get order status history")
     @GetMapping("/{orderId}/history")
-    public ResponseEntity<List<OrderHistoryResponse>> getOrderHistory(
+    public ResponseEntity<PageResponse<OrderHistoryResponse>>
+    getOrderHistory(
             @PathVariable Long orderId,
-            Principal principal
+            Principal principal,
+
+            @RequestParam(defaultValue = "0")
+            @Min(0)
+            int page,
+
+            @RequestParam(defaultValue = "20")
+            @Min(1)
+            @Max(100)
+            int size
     ) {
         return ResponseEntity.ok(
                 orderService.getOrderHistory(
                         orderId,
-                        principal.getName()
+                        principal.getName(),
+                        page,
+                        size
                 )
         );
     }
