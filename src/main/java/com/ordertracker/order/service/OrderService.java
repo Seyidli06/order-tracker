@@ -22,6 +22,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
+import com.ordertracker.common.dto.PageResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 @Service
 @RequiredArgsConstructor
@@ -82,21 +86,33 @@ public class OrderService {
     }
 
     @Transactional(readOnly = true)
-    public List<OrderResponse> getMyOrders(
-            String email
+    public PageResponse<OrderResponse> getMyOrders(
+            String email,
+            int page,
+            int size
     ) {
         User user =
                 getUserByEmail(email);
 
-        return orderRepository
-                .findAllByUserIdOrderByCreatedAtDesc(
-                        user.getId()
-                )
-                .stream()
-                .map(
-                        orderMapper::toResponse
-                )
-                .toList();
+        Pageable pageable =
+                PageRequest.of(
+                        page,
+                        size
+                );
+
+        Page<OrderResponse> orders =
+                orderRepository
+                        .findAllByUserIdOrderByCreatedAtDesc(
+                                user.getId(),
+                                pageable
+                        )
+                        .map(
+                                orderMapper::toResponse
+                        );
+
+        return PageResponse.from(
+                orders
+        );
     }
 
     @Transactional(readOnly = true)
@@ -121,9 +137,11 @@ public class OrderService {
     }
 
     @Transactional(readOnly = true)
-    public List<OrderHistoryResponse> getOrderHistory(
+    public PageResponse<OrderHistoryResponse> getOrderHistory(
             Long orderId,
-            String email
+            String email,
+            int page,
+            int size
     ) {
         User currentUser =
                 getUserByEmail(email);
@@ -136,15 +154,25 @@ public class OrderService {
                 currentUser
         );
 
-        return orderStatusHistoryRepository
-                .findAllByOrderIdOrderByChangedAtDesc(
-                        order.getId()
-                )
-                .stream()
-                .map(
-                        orderMapper::toHistoryResponse
-                )
-                .toList();
+        Pageable pageable =
+                PageRequest.of(
+                        page,
+                        size
+                );
+
+        Page<OrderHistoryResponse> history =
+                orderStatusHistoryRepository
+                        .findAllByOrderIdOrderByChangedAtDesc(
+                                order.getId(),
+                                pageable
+                        )
+                        .map(
+                                orderMapper::toHistoryResponse
+                        );
+
+        return PageResponse.from(
+                history
+        );
     }
 
     public OrderResponse cancelOrder(

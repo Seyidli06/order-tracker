@@ -29,6 +29,13 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+import com.ordertracker.common.dto.PageResponse;
+import com.ordertracker.order.dto.OrderHistoryResponse;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+
+import java.util.List;
+
 @ExtendWith(MockitoExtension.class)
 class OrderServiceTest {
 
@@ -829,6 +836,204 @@ class OrderServiceTest {
                 never()
         ).save(
                 any(OrderStatusHistory.class)
+        );
+    }
+
+    @Test
+    void shouldReturnPaginatedUserOrders() {
+        Order order =
+                createOrder(
+                        10L,
+                        "ord_test_1",
+                        regularUser,
+                        OrderStatus.CREATED
+                );
+
+        PageRequest pageable =
+                PageRequest.of(
+                        0,
+                        20
+                );
+
+        when(
+                userRepository.findByEmail(
+                        "user@test.com"
+                )
+        ).thenReturn(
+                Optional.of(regularUser)
+        );
+
+        when(
+                orderRepository
+                        .findAllByUserIdOrderByCreatedAtDesc(
+                                regularUser.getId(),
+                                pageable
+                        )
+        ).thenReturn(
+                new PageImpl<>(
+                        List.of(order),
+                        pageable,
+                        1
+                )
+        );
+
+        PageResponse<OrderResponse> response =
+                orderService.getMyOrders(
+                        "user@test.com",
+                        0,
+                        20
+                );
+
+        assertEquals(
+                1,
+                response.content()
+                        .size()
+        );
+
+        assertEquals(
+                0,
+                response.page()
+        );
+
+        assertEquals(
+                20,
+                response.size()
+        );
+
+        assertEquals(
+                1,
+                response.totalElements()
+        );
+
+        assertEquals(
+                1,
+                response.totalPages()
+        );
+
+        assertTrue(
+                response.first()
+        );
+
+        assertTrue(
+                response.last()
+        );
+
+        assertEquals(
+                10L,
+                response.content()
+                        .get(0)
+                        .id()
+        );
+
+        verify(orderRepository)
+                .findAllByUserIdOrderByCreatedAtDesc(
+                        regularUser.getId(),
+                        pageable
+                );
+    }
+
+    @Test
+    void shouldReturnPaginatedOrderHistory() {
+        Order order =
+                createOrder(
+                        10L,
+                        "ord_test_1",
+                        regularUser,
+                        OrderStatus.PAID
+                );
+
+        OrderStatusHistory history =
+                OrderStatusHistory.builder()
+                        .id(100L)
+                        .order(order)
+                        .previousStatus(
+                                OrderStatus.PAYMENT_PENDING
+                        )
+                        .newStatus(
+                                OrderStatus.PAID
+                        )
+                        .source(
+                                StatusChangeSource.PAYMENT_WEBHOOK
+                        )
+                        .referenceId(
+                                "pay_evt_123"
+                        )
+                        .build();
+
+        PageRequest pageable =
+                PageRequest.of(
+                        0,
+                        20
+                );
+
+        when(
+                userRepository.findByEmail(
+                        "user@test.com"
+                )
+        ).thenReturn(
+                Optional.of(regularUser)
+        );
+
+        when(
+                orderRepository.findById(
+                        10L
+                )
+        ).thenReturn(
+                Optional.of(order)
+        );
+
+        when(
+                orderStatusHistoryRepository
+                        .findAllByOrderIdOrderByChangedAtDesc(
+                                10L,
+                                pageable
+                        )
+        ).thenReturn(
+                new PageImpl<>(
+                        List.of(history),
+                        pageable,
+                        1
+                )
+        );
+
+        PageResponse<OrderHistoryResponse> response =
+                orderService.getOrderHistory(
+                        10L,
+                        "user@test.com",
+                        0,
+                        20
+                );
+
+        assertEquals(
+                1,
+                response.content()
+                        .size()
+        );
+
+        assertEquals(
+                100L,
+                response.content()
+                        .get(0)
+                        .id()
+        );
+
+        assertEquals(
+                OrderStatus.PAID,
+                response.content()
+                        .get(0)
+                        .newStatus()
+        );
+
+        assertEquals(
+                1,
+                response.totalElements()
+        );
+
+        verify(
+                orderStatusHistoryRepository
+        ).findAllByOrderIdOrderByChangedAtDesc(
+                10L,
+                pageable
         );
     }
 }
