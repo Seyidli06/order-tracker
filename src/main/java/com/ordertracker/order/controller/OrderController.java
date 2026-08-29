@@ -73,6 +73,20 @@ public class OrderController {
         );
     }
 
+    @Operation(summary = "Cancel an order")
+    @PatchMapping("/{orderId}/cancel")
+    public ResponseEntity<OrderResponse> cancelOrder(
+            @PathVariable Long orderId,
+            Principal principal
+    ) {
+        return ResponseEntity.ok(
+                orderService.cancelOrder(
+                        orderId,
+                        principal.getName()
+                )
+        );
+    }
+
     @Operation(summary = "Get order status history")
     @GetMapping("/{orderId}/history")
     public ResponseEntity<List<OrderHistoryResponse>> getOrderHistory(
