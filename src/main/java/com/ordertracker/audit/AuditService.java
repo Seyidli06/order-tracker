@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
+import jakarta.persistence.EntityNotFoundException;
 
 @Service
 @RequiredArgsConstructor
@@ -64,9 +65,17 @@ public class AuditService {
     }
 
     @Transactional(readOnly = true)
-    public WebhookAuditLog findByEventId(String eventId) {
-        return webhookAuditLogRepository.findByEventId(eventId)
-                .orElseThrow(() -> new IllegalArgumentException("Webhook audit log not found for event ID: " + eventId));
+    public WebhookAuditLog findByEventId(
+            String eventId
+    ) {
+        return webhookAuditLogRepository
+                .findByEventId(eventId)
+                .orElseThrow(
+                        () -> new EntityNotFoundException(
+                                "Webhook audit log not found for event ID: "
+                                        + eventId
+                        )
+                );
     }
 
     @Transactional(readOnly = true)
