@@ -27,12 +27,8 @@ jobs:
       - name: Make Maven wrapper executable
         run: chmod +x mvnw
 
-      - name: Compile project
-        run: ./mvnw clean compile
+      - name: Run full verification suite
+        run: ./mvnw clean verify
 
-      - name: Run stable backend tests
-        run: >
-          ./mvnw
-          -Dtest=AuthServiceTest,AuthControllerTest,AuthRequestValidationTest,JwtServiceTest,OrderServiceTest,OrderStatusTransitionValidatorTest,OrderControllerTest,CreateOrderRequestTest,SecurityIntegrationTest,WebhookOrderStatusHandlerTest,RateLimitFilterTest          test
       - name: Check whitespace errors
         run: git diff --check

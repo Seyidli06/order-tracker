@@ -1,4 +1,4 @@
-package com.adil.ordertracker.support;
+package com.ordertracker.support;
 
 import com.ordertracker.audit.WebhookAuditLog;
 import com.ordertracker.notification.dto.EmailNotificationRequest;
@@ -17,7 +17,6 @@ public class TestDataFactory {
 
     public static WebhookAuditLog createWebhookAuditLog() {
         return WebhookAuditLog.builder()
-                .id(1L)
                 .eventId("evt_test_12345")
                 .eventType("payment.completed")
                 .source("stripe")
@@ -31,7 +30,6 @@ public class TestDataFactory {
 
     public static WebhookAuditLog createWebhookAuditLog(WebhookAuditLog.ProcessingStatus status) {
         return WebhookAuditLog.builder()
-                .id(1L)
                 .eventId("evt_test_12345")
                 .eventType("payment.completed")
                 .source("stripe")
@@ -45,7 +43,6 @@ public class TestDataFactory {
 
     public static WebhookAuditLog createWebhookAuditLog(String eventId, String eventType) {
         return WebhookAuditLog.builder()
-                .id(1L)
                 .eventId(eventId)
                 .eventType(eventType)
                 .source("stripe")
