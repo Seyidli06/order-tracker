@@ -21,11 +21,13 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import org.springframework.test.context.ActiveProfiles;
 
-
+@ActiveProfiles("security-test")
 @WebMvcTest(
         controllers = TestSecurityController.class
 )
+
 @Import({
         SecurityConfig.class,
         JwtAuthenticationFilter.class,
@@ -33,6 +35,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
         RestAuthenticationEntryPoint.class,
         RestAccessDeniedHandler.class
 })
+
+
 class SecurityIntegrationTest {
 
     @Autowired

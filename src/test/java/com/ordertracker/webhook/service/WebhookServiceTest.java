@@ -1,6 +1,6 @@
-package com.adil.ordertracker.webhook.service;
+package com.ordertracker.webhook.service;
 
-import com.adil.ordertracker.support.TestDataFactory;
+import com.ordertracker.support.TestDataFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ordertracker.audit.AuditService;
 import com.ordertracker.audit.WebhookAuditLog;
@@ -48,7 +48,7 @@ class WebhookServiceTest {
         paymentPayload = TestDataFactory.createPaymentWebhookPayload();
         shipmentPayload = TestDataFactory.createShipmentWebhookPayload();
         auditLog = TestDataFactory.createWebhookAuditLog();
-
+        auditLog.setId(1L);
         lenient().when(objectMapper.writeValueAsString(any())).thenReturn("{\"test\":\"payload\"}");
         lenient().when(auditService.logIncomingWebhook(anyString(), anyString(), anyString(), anyString(), anyString()))
                 .thenReturn(auditLog);

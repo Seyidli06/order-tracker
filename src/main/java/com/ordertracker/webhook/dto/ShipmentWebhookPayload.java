@@ -1,6 +1,7 @@
 package com.ordertracker.webhook.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -35,6 +36,7 @@ public class ShipmentWebhookPayload {
     private Instant timestamp;
 
     @NotNull(message = "Shipment data is required")
+    @Valid
     @JsonProperty("shipment_data")
     private ShipmentData shipmentData;
 
@@ -78,7 +80,7 @@ public class ShipmentWebhookPayload {
         private Instant actualDelivery;
 
         @NotNull(message = "Packages is required")
-        private List<Package> packages;
+        private List<@Valid Package> packages;
     }
 
     @Data
