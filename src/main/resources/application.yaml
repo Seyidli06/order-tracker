@@ -6,3 +6,8 @@ security:
   jwt:
     secret: ${JWT_SECRET}
     expiration: ${JWT_EXPIRATION:3600000}
+
+  webhook:
+    payment-secret: ${WEBHOOK_PAYMENT_SECRET:}
+    shipment-secret: ${WEBHOOK_SHIPMENT_SECRET:}
+    timestamp-tolerance-seconds: ${WEBHOOK_TIMESTAMP_TOLERANCE_SECONDS:300}
