@@ -1,6 +1,6 @@
-package com.adil.ordertracker.webhook.controller;
+package com.ordertracker.webhook.controller;
 
-import com.adil.ordertracker.support.TestDataFactory;
+import com.ordertracker.support.TestDataFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ordertracker.webhook.controller.WebhookController;
 import com.ordertracker.webhook.dto.ShipmentWebhookPayload;
@@ -18,7 +18,26 @@ import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(controllers = WebhookController.class)
+import com.ordertracker.security.jwt.JwtAuthenticationFilter;
+import com.ordertracker.security.ratelimit.RateLimitFilter;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
+
+@WebMvcTest(
+        controllers = WebhookController.class,
+        excludeFilters = {
+                @ComponentScan.Filter(
+                        type = FilterType.ASSIGNABLE_TYPE,
+                        classes = JwtAuthenticationFilter.class
+                ),
+                @ComponentScan.Filter(
+                        type = FilterType.ASSIGNABLE_TYPE,
+                        classes = RateLimitFilter.class
+                )
+        }
+)
+@AutoConfigureMockMvc(addFilters = false)
 class ShipmentWebhookControllerTest {
 
     @Autowired

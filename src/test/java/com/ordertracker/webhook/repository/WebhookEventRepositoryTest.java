@@ -1,6 +1,6 @@
-package com.adil.ordertracker.webhook.repository;
+package com.ordertracker.webhook.repository;
 
-import com.adil.ordertracker.support.TestDataFactory;
+import com.ordertracker.support.TestDataFactory;
 import com.ordertracker.audit.WebhookAuditLog;
 import com.ordertracker.audit.WebhookAuditLogRepository;
 import org.junit.jupiter.api.AfterAll;
