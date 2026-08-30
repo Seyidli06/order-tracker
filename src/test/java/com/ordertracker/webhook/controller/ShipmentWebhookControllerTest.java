@@ -24,7 +24,9 @@ import com.ordertracker.security.ratelimit.RateLimitFilter;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
+import org.springframework.core.task.TaskRejectedException;
 
+import static org.mockito.Mockito.doThrow;
 @WebMvcTest(
         controllers = WebhookController.class,
         excludeFilters = {
@@ -214,5 +216,42 @@ class ShipmentWebhookControllerTest {
                 .andExpect(status().isOk());
 
         verify(webhookService).processShipmentWebhook(any(ShipmentWebhookPayload.class), anyString());
+    }
+
+    @Test
+    void handleShipmentWebhook_DispatchFailure_Returns500()
+            throws Exception {
+
+        ShipmentWebhookPayload payload =
+                TestDataFactory
+                        .createShipmentWebhookPayload(
+                                "SHIPPED"
+                        );
+
+        doThrow(
+                new TaskRejectedException(
+                        "Executor rejected task"
+                )
+        )
+                .when(webhookService)
+                .processShipmentWebhook(
+                        any(ShipmentWebhookPayload.class),
+                        anyString()
+                );
+
+        mockMvc.perform(
+                        post("/api/webhooks/shipment")
+                                .contentType(
+                                        MediaType.APPLICATION_JSON
+                                )
+                                .content(
+                                        objectMapper.writeValueAsString(
+                                                payload
+                                        )
+                                )
+                )
+                .andExpect(
+                        status().isInternalServerError()
+                );
     }
 }
