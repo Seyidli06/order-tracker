@@ -22,21 +22,27 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import org.springframework.test.context.ActiveProfiles;
+import com.ordertracker.security.webhook.WebhookSignatureFilter;
+import com.ordertracker.security.webhook.WebhookSignatureProperties;
+import com.ordertracker.security.webhook.WebhookSignatureVerifier;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 
 @ActiveProfiles("security-test")
 @WebMvcTest(
         controllers = TestSecurityController.class
 )
-
+@EnableConfigurationProperties(
+        WebhookSignatureProperties.class
+)
 @Import({
         SecurityConfig.class,
         JwtAuthenticationFilter.class,
         SecurityErrorResponseWriter.class,
         RestAuthenticationEntryPoint.class,
-        RestAccessDeniedHandler.class
+        RestAccessDeniedHandler.class,
+        WebhookSignatureFilter.class,
+        WebhookSignatureVerifier.class
 })
-
-
 class SecurityIntegrationTest {
 
     @Autowired

@@ -48,6 +48,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import com.ordertracker.support.WebhookSignatureTestUtils;
 
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
@@ -647,15 +648,23 @@ class OrderWebhookFlowIntegrationTest {
             PaymentWebhookPayload payload
     ) throws Exception {
 
+        String body =
+                objectMapper.writeValueAsString(
+                        payload
+                );
+
         HttpHeaders headers =
                 createJsonHeaders();
 
+        WebhookSignatureTestUtils
+                .addPaymentSignature(
+                        headers,
+                        body
+                );
+
         HttpEntity<String> request =
                 new HttpEntity<>(
-                        objectMapper
-                                .writeValueAsString(
-                                        payload
-                                ),
+                        body,
                         headers
                 );
 
@@ -672,15 +681,23 @@ class OrderWebhookFlowIntegrationTest {
             ShipmentWebhookPayload payload
     ) throws Exception {
 
+        String body =
+                objectMapper.writeValueAsString(
+                        payload
+                );
+
         HttpHeaders headers =
                 createJsonHeaders();
 
+        WebhookSignatureTestUtils
+                .addShipmentSignature(
+                        headers,
+                        body
+                );
+
         HttpEntity<String> request =
                 new HttpEntity<>(
-                        objectMapper
-                                .writeValueAsString(
-                                        payload
-                                ),
+                        body,
                         headers
                 );
 
@@ -811,4 +828,6 @@ class OrderWebhookFlowIntegrationTest {
                 order
         );
     }
+
+
 }
