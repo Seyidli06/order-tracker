@@ -22,6 +22,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import com.ordertracker.security.ratelimit.RateLimitFilter;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.http.HttpMethod;
+import com.ordertracker.security.webhook.WebhookSignatureFilter;
 
 @Configuration
 @EnableMethodSecurity
@@ -33,6 +34,7 @@ public class SecurityConfig {
     private final RestAuthenticationEntryPoint authenticationEntryPoint;
     private final RestAccessDeniedHandler accessDeniedHandler;
     private final RateLimitFilter rateLimitFilter;
+    private final WebhookSignatureFilter webhookSignatureFilter;
 
     @Bean
     public SecurityFilterChain securityFilterChain(
@@ -92,6 +94,10 @@ public class SecurityConfig {
                 .addFilterAfter(
                         rateLimitFilter,
                         JwtAuthenticationFilter.class
+                )
+                .addFilterAfter(
+                        webhookSignatureFilter,
+                        RateLimitFilter.class
                 );
 
         return http.build();
@@ -130,6 +136,23 @@ public class SecurityConfig {
                 registration =
                 new FilterRegistrationBean<>(
                         rateLimitFilter
+                );
+
+        registration.setEnabled(false);
+
+        return registration;
+    }
+
+    @Bean
+    public FilterRegistrationBean<WebhookSignatureFilter>
+    webhookSignatureFilterRegistration(
+            WebhookSignatureFilter webhookSignatureFilter
+    ) {
+
+        FilterRegistrationBean<WebhookSignatureFilter>
+                registration =
+                new FilterRegistrationBean<>(
+                        webhookSignatureFilter
                 );
 
         registration.setEnabled(false);

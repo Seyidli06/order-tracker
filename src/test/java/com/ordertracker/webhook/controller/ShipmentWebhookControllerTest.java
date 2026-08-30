@@ -1,5 +1,6 @@
 package com.ordertracker.webhook.controller;
 
+import com.ordertracker.security.webhook.WebhookSignatureFilter;
 import com.ordertracker.support.TestDataFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ordertracker.webhook.controller.WebhookController;
@@ -34,6 +35,10 @@ import org.springframework.context.annotation.FilterType;
                 @ComponentScan.Filter(
                         type = FilterType.ASSIGNABLE_TYPE,
                         classes = RateLimitFilter.class
+                ),
+                @ComponentScan.Filter(
+                        type = FilterType.ASSIGNABLE_TYPE,
+                        classes = WebhookSignatureFilter.class
                 )
         }
 )
