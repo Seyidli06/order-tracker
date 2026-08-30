@@ -1,6 +1,7 @@
 package com.ordertracker.webhook.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -35,6 +36,7 @@ public class PaymentWebhookPayload {
     private Instant timestamp;
 
     @NotNull(message = "Payment data is required")
+    @Valid
     @JsonProperty("payment_data")
     private PaymentData paymentData;
 
