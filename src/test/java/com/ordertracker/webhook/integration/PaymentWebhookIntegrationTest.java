@@ -45,6 +45,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import com.ordertracker.support.WebhookSignatureTestUtils;
 
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT
@@ -277,6 +278,11 @@ class PaymentWebhookIntegrationTest {
             PaymentWebhookPayload payload
     ) throws Exception {
 
+        String body =
+                objectMapper.writeValueAsString(
+                        payload
+                );
+
         HttpHeaders headers =
                 new HttpHeaders();
 
@@ -284,12 +290,15 @@ class PaymentWebhookIntegrationTest {
                 MediaType.APPLICATION_JSON
         );
 
+        WebhookSignatureTestUtils
+                .addPaymentSignature(
+                        headers,
+                        body
+                );
+
         HttpEntity<String> request =
                 new HttpEntity<>(
-                        objectMapper
-                                .writeValueAsString(
-                                        payload
-                                ),
+                        body,
                         headers
                 );
 
