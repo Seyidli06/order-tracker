@@ -20,6 +20,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 
 @WebMvcTest(
@@ -239,5 +240,60 @@ class SecurityIntegrationTest {
                 );
     }
 
+    @Test
+    void shouldAllowLoginWithoutAuthentication()
+            throws Exception {
+
+        mockMvc.perform(
+                        post("/api/auth/login")
+                )
+                .andExpect(
+                        status().isOk()
+                );
+    }
+
+    @Test
+    void shouldAllowRegisterWithoutAuthentication()
+            throws Exception {
+
+        mockMvc.perform(
+                        post("/api/auth/register")
+                )
+                .andExpect(
+                        status().isOk()
+                );
+    }
+
+    @Test
+    void shouldRequireAuthenticationForOtherAuthEndpoints()
+            throws Exception {
+
+        mockMvc.perform(
+                        get("/api/auth/test")
+                )
+                .andExpect(
+                        status().isUnauthorized()
+                )
+                .andExpect(
+                        jsonPath("$.status")
+                                .value(401)
+                )
+                .andExpect(
+                        jsonPath("$.error")
+                                .value("Unauthorized")
+                )
+                .andExpect(
+                        jsonPath("$.message")
+                                .value(
+                                        "Authentication is required"
+                                )
+                )
+                .andExpect(
+                        jsonPath("$.path")
+                                .value(
+                                        "/api/auth/test"
+                                )
+                );
+    }
 
 }
